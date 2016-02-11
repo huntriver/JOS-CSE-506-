@@ -5,7 +5,7 @@
 #include <inc/kbdreg.h>
 #include <inc/string.h>
 #include <inc/assert.h>
-
+#include <inc/color.h>
 #include <kern/console.h>
 
 static void cons_intr(int (*proc)(void));
@@ -162,6 +162,7 @@ cga_init(void)
 static void
 cga_putc(int c)
 {
+	c|= current_color<<8;
 	// if no attribute given, then use black on white
 	if (!(c & ~0xFF))
 		c |= 0x0700;

@@ -14,7 +14,7 @@
 #include <kern/dwarf_api.h>
 
 #define CMDBUF_SIZE	80	// enough for one VGA text line
-
+#define ANSI_COLOR_RED     "\x1b[31m"
 
 struct Command {
 	const char *name;
@@ -117,7 +117,7 @@ monitor(struct Trapframe *tf)
 
 	cprintf("Welcome to the JOS kernel monitor!\n");
 	cprintf("Type 'help' for a list of commands.\n");
-
+    cprintf("%C%s\n%C%s\n%C%s\n", 1, "blue", 2, "green", 4, "red");
 
 	while (1) {
 		buf = readline("K> ");
