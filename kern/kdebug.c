@@ -26,6 +26,14 @@ struct _Dwarf_Debug mydebug;
 Dwarf_Debug dbg = &mydebug;
 #ifdef X86_64
 
+stab_binsearch(stabs, &lline, &rline, N_SLINE, addr);
+	if(lline > rline)
+		info->rip_line = -1;
+	else
+		info->rip_line = stabs[lline].n_desc;
+//stab_binsearch(stabs, &lline, &rline, N_SLINE, addr);
+  //  info->rip_line = stabs[lline].n_desc;
+
 static const char *const dwarf_regnames_x86_64[] =
 {
 	"rax", "rdx", "rcx", "rbx",
