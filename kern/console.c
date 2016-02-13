@@ -8,6 +8,8 @@
 #include <inc/color.h>
 #include <kern/console.h>
 
+
+//c
 static void cons_intr(int (*proc)(void));
 static void cons_putc(int c);
 
