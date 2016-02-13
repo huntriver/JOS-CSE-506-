@@ -6,6 +6,7 @@
 #include <inc/memlayout.h>
 #include <inc/assert.h>
 #include <inc/x86.h>
+#include <inc/color.h>
 
 #include <kern/console.h>
 #include <kern/monitor.h>
@@ -26,6 +27,7 @@ struct Command {
 static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
+	{ "backtrace", "backtrace", mon_backtrace },
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
 
@@ -57,46 +59,36 @@ mon_kerninfo(int argc, char **argv, struct Trapframe *tf)
 	return 0;
 }
 
-int
-backtrace(int argc, char **argv, struct Trapframe *tf){
-	uint64_t* rbp = (uint64_t*) read_rbp();
-	cprintf("Stack backtrace:\n");
- 	while (rbp) {
-		uint64_t rip = rbp[1];
-		cprintf("rbp %x  rip %x  args", rbp, rip);
-		int i;
-		for (i = 2; i <= 6; ++i){
-			cprintf(" %08.x", rbp[i]);
-		}
-		cprintf("\n");
-		struct Ripdebuginfo info;
-		debuginfo_rip(rip, &info);
-		cprintf("\t%s:%d: %.*s+%d\n", 
-			info.rip_file, info.rip_line,
-			info.rip_fn_namelen, info.rip_fn_name,
-			rip-info.rip_fn_addr);
-//         kern/monitor.c:143: monitor+106
-		rbp = (uint64_t*) *rbp;
-	}
-	return 0;
-}
 
 int
 mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 {
 	// Your code here.
-	uint64_t* rbp = (uint64_t*) read_rbp();
-	cprintf("Stack backtrace:\n");
-	while (rbp){
-		cprintf("rbp %x  rip %x  args", rbp, *(rbp+1));	
-		cprintf(" %x", *(rbp+2));
-		cprintf(" %x", *(rbp+3));
-		cprintf(" %x", *(rbp+4));
-		cprintf(" %x", *(rbp+5));
-		cprintf(" %x\n", *(rbp+6));
-		rbp = (uint64_t*) *rbp;
-	}
+
+	uint64_t *rbp = (uint64_t *)read_rbp();
+	uint64_t rip;
+	read_rip(rip);
+	cprintf("Stack backtrace: \n");
+
+	do {
+		
+		cprintf("rbp %16.0x   rip %16.0x\n", rbp, rip);
+		struct Ripdebuginfo info;
+		debuginfo_rip(rip, &info);
+		//file name and line within that file of the stack frame's rip, followed by the name of the function and the offset of the rip from the first instruction of the function 
+        int offset=rip-info.rip_fn_addr;
+		cprintf(" %s:%d: %s+%16.0x ",info.rip_file, info.rip_line, info.rip_fn_name,offset);
+		
+		cprintf("args:%x ",info.rip_fn_narg); //number of arguments
+		int i;
+		for(i = 1; i <= info.rip_fn_narg; i++) 
+			cprintf("%16.0x ", *((int *)(rbp) -i));     
+		cprintf("\n");
+		rip = (uint64_t) *(rbp+1);
+		rbp = (uint64_t *)(*rbp);
+	} while (rbp!=0);
 	return 0;
+
 }
 
 
@@ -152,12 +144,15 @@ monitor(struct Trapframe *tf)
 
 	cprintf("Welcome to the JOS kernel monitor!\n");
 	cprintf("Type 'help' for a list of commands.\n");
-    cprintf("%C%s\n%C%s\n%C%s\n", 1, "blue", 2, "green", 4, "red");
-
+	cprintf("%C%s\n", BLUE, "BLUE");
+	cprintf("%C%s\n", GREEN, "GREEN");
+	cprintf("%C%s\n", YELLOW, "YELLOW");
+	cprintf("%C%s\n", RED, "RED");
+	cprintf("%C%s\n", BWHITE, "BRIGHT WHITE");
 	while (1) {
 		buf = readline("K> ");
 		if (buf != NULL)
 			if (runcmd(buf, tf) < 0)
 				break;
+		}
 	}
-}

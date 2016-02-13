@@ -1,12 +1,15 @@
 #ifndef JOS_INC_COLOR_H
 #define JOS_INC_COLOR_H
 
-#define BLUE 0x0100;
-#define GREEN 0x0200;
-#define RED 0x0400;
-#define WHITE 0x0700;
-#define YELLOW 0x0600;
-#define BLACK 0X0000;
+#define BLUE 1
+#define GREEN 2
+#define RED 4
+#define BWHITE 15
+#define WHITE 7
+#define ORANGE 6
+#define YELLOW 14
+#define BLACK 0
+#define GRAY 8
 
 int current_color;
 

@@ -8,8 +8,6 @@
 #include <inc/color.h>
 #include <kern/console.h>
 
-
-//c
 static void cons_intr(int (*proc)(void));
 static void cons_putc(int c);
 
@@ -166,8 +164,8 @@ cga_putc(int c)
 {
 	c|= current_color<<8;
 	// if no attribute given, then use black on white
-	if (!(c & ~0xFF))
-		c |= 0x0700;
+	// if (!(c & ~0xFF))
+	// 	c |= 0x0700;
 
 	switch (c & 0xff) {
 	case '\b':
