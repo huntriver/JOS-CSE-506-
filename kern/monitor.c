@@ -123,18 +123,19 @@ mon_showmappings(int argc, char **argv, struct Trapframe *tf)
 
 	//cprintf("suc!\n");
 	pte_t *pte;
-	cprintf("Virtual Address			Physical Address			PTE_P		PTE_W		PTE_U\n");
+	cprintf("Virtual Address	Physical Address	PTE_P	PTE_W	PTE_U\n");
 	i=lower_addr;
 	while(i<=upper_addr)
 	{
+		//cprintf("boot_pml4e:%x\n",boot_pml4e);
 		pte=pml4e_walk(boot_pml4e,(void *)i,0);
-		cprintf("0x%x			",i);
+		cprintf("0x%x	",i);
 		if (!pte) {
 			cprintf("address not mapped\n");
 			
 		}
 		else
-		cprintf("0x%x			%x		%x 		%x 		\n",PTE_ADDR(*pte),*pte&PTE_P,*pte&PTE_W,*pte&PTE_U);
+		cprintf("0x%x 	%x	%x 	%x\n",PTE_ADDR(*pte),*pte&PTE_P,*pte&PTE_W,*pte&PTE_U);
 
 		i+=PGSIZE;
 
