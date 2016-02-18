@@ -447,8 +447,10 @@ page_free(struct PageInfo *pp)
 void
 page_decref(struct PageInfo* pp)
 {
-	if (--pp->pp_ref == 0)
+	if (--pp->pp_ref == 0){
+		//cprintf("in\n");
 		page_free(pp);
+	}
 }
 // Given a pml4 pointer, pml4e_walk returns a pointer
 // to the page table entry (PTE) for linear address 'va'
@@ -493,6 +495,8 @@ pml4e_walk(pml4e_t *pml4e, const void *va, int create)
 		pte = pdpe_walk(KADDR(PTE_ADDR(*pdpe)), va, create);
 		if (!pte)
 		{
+			//cprintf("newpage_ref1 %d\n",newPage->pp_ref);
+			newPage->pp_ref=0;
 			page_free(newPage);
 			*pdpe=0;
 		}
@@ -526,6 +530,8 @@ pdpe_walk(pdpe_t *pdpe,const void *va,int create){
 		pte = pgdir_walk(KADDR(PTE_ADDR(*pde)), va, create);
 		if (!pte)
 		{
+			//cprintf("newpage_ref %d\n",newPage->pp_ref);
+			newPage->pp_ref=0;
 			page_free(newPage);
 			*pde=0;
 		}
@@ -620,19 +626,18 @@ page_insert(pml4e_t *pml4e, struct PageInfo *pp, void *va, int perm)
 {
 	// Fill this function in
 	pte_t* ad = pml4e_walk(pml4e, va, 1);
+	//cprintf("here?\n");
 	if(ad == NULL){//page table could not be allocated
 		return -E_NO_MEM;
 	}
-
 	struct PageInfo * phy_pageInfo = page_lookup(pml4e, va, NULL);
-	if(phy_pageInfo == pp){
-		*ad = page2pa(pp) | perm | PTE_P;
-		return 0;
-	}
-
+	//cprintf("here2?\n");
 	if( phy_pageInfo != NULL ){
+			//cprintf("here3?\n");
 		page_remove(pml4e, va);
+		//	cprintf("here4?\n");
 	}
+	
 	*ad = page2pa(pp) | perm | PTE_P;
 
 	pp->pp_ref++;
@@ -682,17 +687,27 @@ page_lookup(pml4e_t *pml4e, void *va, pte_t **pte_store)
 void
 page_remove(pml4e_t *pml4e, void *va)
 {
-	// Fill this function in
-	pte_t** ad = NULL;
-	struct PageInfo * phy_pageInfo = page_lookup(pml4e, va, ad);
+	//Fill this function in
+	pte_t* ad = NULL;
+	struct PageInfo * phy_pageInfo = page_lookup(pml4e, va, &ad);
 	if(phy_pageInfo==NULL){//1
 		return;
 	}
 	page_decref(phy_pageInfo);//2,3
-	if(*ad != NULL){//4-(if such a PTE exists)
-		**ad = 0;//4-set to 0
+	if(ad != NULL){//4-(if such a PTE exists)
+		*ad = 0;//4-set to 0
 		tlb_invalidate(pml4e,va);//5
 	}
+	  //  pte_t *pte;
+   // pte = 0;
+   // struct PageInfo* page;
+   // page = page_lookup(pml4e, va, &pte);
+   // if(page != NULL)
+   // {
+   //   page_decref(page);
+   //   *pte = 0;    
+   //   tlb_invalidate(pml4e, va);
+   // }  
 }
 
 //
@@ -985,25 +1000,27 @@ check_page_free_list(bool only_low_memory)
 		assert(page_insert(boot_pml4e, pp1, 0x0, 0) < 0);
 
 	// free pp0 and try again: pp0 should be used for page table
+	//	cprintf("pp1_ref %d\n",pp1->pp_ref);
 		page_free(pp0);
-		cprintf("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF2\n");
-		//assert(page_insert(boot_pml4e, pp1, 0x0, 0) < 0);
-		cprintf("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF1\n");
+		//cprintf("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF2\n");
+		assert(page_insert(boot_pml4e, pp1, 0x0, 0) < 0);
+	//	cprintf("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF1\n");
 		page_free(pp2);
 		page_free(pp3);
 
-	//cprintf("pp1 ref count = %d\n",pp1->pp_ref);
-	//cprintf("pp0 ref count = %d\n",pp0->pp_ref);
-	//cprintf("pp2 ref count = %d\n",pp2->pp_ref);
+	// cprintf("pp1 ref count = %d\n",pp1->pp_ref);
+	// cprintf("pp0 ref count = %d\n",pp0->pp_ref);
+	// cprintf("pp2 ref count = %d\n",pp2->pp_ref);
 
 		assert(page_insert(boot_pml4e, pp1, 0x0, 0) == 0);
+	//	cprintf("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF3\n");
 		assert((PTE_ADDR(boot_pml4e[0]) == page2pa(pp0) || PTE_ADDR(boot_pml4e[0]) == page2pa(pp2) || PTE_ADDR(boot_pml4e[0]) == page2pa(pp3) ));
 		assert(check_va2pa(boot_pml4e, 0x0) == page2pa(pp1));
 		assert(pp1->pp_ref == 1);
 		assert(pp0->pp_ref == 1);
 		assert(pp2->pp_ref == 1);
 		
-
+//cprintf("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF4\n");
 	//should be able to map pp3 at PGSIZE because pp0 is already allocated for page table
 		assert(page_insert(boot_pml4e, pp3, (void*) PGSIZE, 0) == 0);
 		assert(check_va2pa(boot_pml4e, PGSIZE) == page2pa(pp3));
@@ -1026,6 +1043,7 @@ check_page_free_list(bool only_low_memory)
 		ptep = KADDR(PTE_ADDR(pde[PDX(PGSIZE)]));
 		assert(pml4e_walk(boot_pml4e, (void*)PGSIZE, 0) == ptep+PTX(PGSIZE));
 
+
 	// should be able to change permissions too.
 		assert(page_insert(boot_pml4e, pp3, (void*) PGSIZE, PTE_U) == 0);
 		assert(check_va2pa(boot_pml4e, PGSIZE) == page2pa(pp3));
@@ -1033,12 +1051,13 @@ check_page_free_list(bool only_low_memory)
 		assert(*pml4e_walk(boot_pml4e, (void*) PGSIZE, 0) & PTE_U);
 		assert(boot_pml4e[0] & PTE_U);
 
-
 	// should not be able to map at PTSIZE because need free page for page table
 		assert(page_insert(boot_pml4e, pp0, (void*) PTSIZE, 0) < 0);
 
+
 	// insert pp1 at PGSIZE (replacing pp3)
 		assert(page_insert(boot_pml4e, pp1, (void*) PGSIZE, 0) == 0);
+
 		assert(!(*pml4e_walk(boot_pml4e, (void*) PGSIZE, 0) & PTE_U));
 
 	// should have pp1 at both 0 and PGSIZE
@@ -1068,7 +1087,6 @@ check_page_free_list(bool only_low_memory)
 		assert(check_va2pa(boot_pml4e, PGSIZE) == ~0);
 		assert(pp1->pp_ref == 0);
 		assert(pp3->pp_ref == 1);
-
 
 #if 0
 	// should be able to page_insert to change a page
