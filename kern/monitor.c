@@ -13,6 +13,7 @@
 #include <kern/dwarf.h>
 #include <kern/kdebug.h>
 #include <kern/dwarf_api.h>
+#include <kern/pmap.h>
 
 #define CMDBUF_SIZE	80	// enough for one VGA text line
 #define ANSI_COLOR_RED     "\x1b[31m"
@@ -28,6 +29,7 @@ static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
 	{ "backtrace", "backtrace", mon_backtrace },
+	{ "showmappings", "showmappings", mon_showmappings },
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
 
@@ -63,7 +65,7 @@ mon_kerninfo(int argc, char **argv, struct Trapframe *tf)
 int
 mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 {
-	// Your code here.
+	// Your cod1e here.
 
 	uint64_t *rbp = (uint64_t *)read_rbp();
 	uint64_t rip;
@@ -91,7 +93,59 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 
 }
 
+int
+mon_showmappings(int argc, char **argv, struct Trapframe *tf)
+{
+	
+	if (argc!=3)
+		goto usage;
+	char *rest;
+	uint64_t lower_addr,upper_addr,i;
+	lower_addr=strtol(argv[1],&rest,16);
+	if (strcmp(rest,"")!=0){
+		goto usage;
+	}
+	upper_addr=strtol(argv[2],&rest,16);
+	if (strcmp(rest,"")!=0){
+		goto usage;
+	}
+	if (upper_addr!=ROUNDUP(upper_addr,PGSIZE) || lower_addr!=ROUNDUP(lower_addr,PGSIZE))
+	{
+		cprintf("showmappings: address must be aligned in PGSIZE!\n");
+		return 0;
+	}
+	if (upper_addr<lower_addr)
+	{
+		cprintf("showmappings: upper_address must not be less than lower_address!\n");
+		return 0;
+	}
 
+
+	//cprintf("suc!\n");
+	pte_t *pte;
+	cprintf("Virtual Address			Physical Address			PTE_P		PTE_W		PTE_U\n");
+	i=lower_addr;
+	while(i<=upper_addr)
+	{
+		pte=pml4e_walk(boot_pml4e,(void *)i,0);
+		cprintf("0x%x			",i);
+		if (!pte) {
+			cprintf("address not mapped\n");
+			
+		}
+		else
+		cprintf("0x%x			%x		%x 		%x 		\n",PTE_ADDR(*pte),*pte&PTE_P,*pte&PTE_W,*pte&PTE_U);
+
+		i+=PGSIZE;
+
+	};
+	return 0;
+
+	usage:
+	  cprintf("usage: showmappings lower_address(base 16) upper_address(base 16)\n");
+	  return 0;
+	
+}
 
 /***** Kernel monitor command interpreter *****/
 
