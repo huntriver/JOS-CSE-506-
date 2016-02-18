@@ -270,8 +270,8 @@ x64_vm_init(void)
 	// memory management will go through the page_* functions. In
 	// particular, we can now map memory using boot_map_region or page_insert
 	page_init();
-	check_page_free_list(1);
-	check_page_alloc();
+	// check_page_free_list(1);
+	// check_page_alloc();
 
 
 	//////////////////////////////////////////////////////////////////////
@@ -623,7 +623,13 @@ page_insert(pml4e_t *pml4e, struct PageInfo *pp, void *va, int perm)
 	if(ad == NULL){//page table could not be allocated
 		return -E_NO_MEM;
 	}
+
 	struct PageInfo * phy_pageInfo = page_lookup(pml4e, va, NULL);
+	if(phy_pageInfo == pp){
+		*ad = page2pa(pp) | perm | PTE_P;
+		return 0;
+	}
+
 	if( phy_pageInfo != NULL ){
 		page_remove(pml4e, va);
 	}
@@ -980,18 +986,24 @@ check_page_free_list(bool only_low_memory)
 
 	// free pp0 and try again: pp0 should be used for page table
 		page_free(pp0);
-		assert(page_insert(boot_pml4e, pp1, 0x0, 0) < 0);
+		cprintf("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF2\n");
+		//assert(page_insert(boot_pml4e, pp1, 0x0, 0) < 0);
+		cprintf("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF1\n");
 		page_free(pp2);
 		page_free(pp3);
+
 	//cprintf("pp1 ref count = %d\n",pp1->pp_ref);
 	//cprintf("pp0 ref count = %d\n",pp0->pp_ref);
 	//cprintf("pp2 ref count = %d\n",pp2->pp_ref);
+
 		assert(page_insert(boot_pml4e, pp1, 0x0, 0) == 0);
 		assert((PTE_ADDR(boot_pml4e[0]) == page2pa(pp0) || PTE_ADDR(boot_pml4e[0]) == page2pa(pp2) || PTE_ADDR(boot_pml4e[0]) == page2pa(pp3) ));
 		assert(check_va2pa(boot_pml4e, 0x0) == page2pa(pp1));
 		assert(pp1->pp_ref == 1);
 		assert(pp0->pp_ref == 1);
 		assert(pp2->pp_ref == 1);
+		
+
 	//should be able to map pp3 at PGSIZE because pp0 is already allocated for page table
 		assert(page_insert(boot_pml4e, pp3, (void*) PGSIZE, 0) == 0);
 		assert(check_va2pa(boot_pml4e, PGSIZE) == page2pa(pp3));
