@@ -213,29 +213,16 @@ boot_alloc(uint32_t n)
 		cprintf("end = %x\n ",end_debug);
 		cprintf("nextfree = %x\n ",nextfree);   
 	}	
-	// cprintf("PGSIZE:%x\n",PGSIZE);
-	// cprintf("n:%x\n",n);
-	// cprintf("boot_alloc memory at %x\n", nextfree);
- //    cprintf("Next memory at %x\n", ROUNDUP((char *) (nextfree+n), PGSIZE));
+	
+	//result is the nextfree from last time we implement boot_alloc method
+	//because of static, nextfree pointer can keep value
 	result = nextfree;
+
 	if (n>0) {
 		nextfree = ROUNDUP(nextfree+n,PGSIZE); 
 	}
-    // if((uint32_t)(result - KERNBASE+n) > (uint32_t)(npages*PGSIZE))
-    // {   
-    //     panic("boot_alloc():out of physical memory\n");
-    // } 
-//这里使用两个指针来标记将要使用的空间和下一次要分配的空间，
-//其中result代表将要使用的n个byte空间 ，nextfree是指下次要使用的空间的首地址
-	// cprintf("n = %d\n",n);
-	// cprintf("result = %p\n",result);
-	// cprintf("nextfree = %p\n\n",nextfree);
-	// Allocate a chunk large enough to hold 'n' bytes, then update
-	// nextfree.  Make sure nextfree is kept aligned
-	// to a multiple of PGSIZE.
-	//
-	// LAB 2: Your code here.
-
+	//Therefore, whatever what case it is, result is the nextfree from last time
+	//If this is the frist time, just return the start address
 	return result;
         
 }
@@ -258,10 +245,7 @@ x64_vm_init(void)
 	int r;
 	struct Env *env;
 	i386_detect_memory();
-	//panic("i386_vm_init: This function is not finished\n");
-	//////////////////////////////////////////////////////////////////////
-	// create initial page directory.
-	//panic("x64_vm_init: this function is not finished\n");
+	
 	cprintf("firstTIME?\n");
 	pml4e = boot_alloc(PGSIZE);
 	memset(pml4e, 0, PGSIZE);
@@ -299,8 +283,8 @@ x64_vm_init(void)
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kepternel RW, user NONE
 
-// 	PTE_P controls whether the PTE is valid: if it is not set,a reference to the page causes a fault (i.e. is not allowed). PTE_W controls whether instructions are allowed to issue writes to the page; if not set, only reads and instruction
-// fetches are allowed. PTE_U controls whether user programs are allowed to use the page; if clear, only the kernel is allowed to use the page.
+	// 	PTE_P controls whether the PTE is valid: if it is not set,a reference to the page causes a fault (i.e. is not allowed). PTE_W controls whether instructions are allowed to issue writes to the page; if not set, only reads and instruction
+	// fetches are allowed. PTE_U controls whether user programs are allowed to use the page; if clear, only the kernel is allowed to use the page.
 
 	// Your code goes here:
 	cprintf("PTSIZE: %x\n",PTSIZE);
@@ -379,7 +363,7 @@ page_init(void)
     // NB: Make sure you preserve the direction in which your page_free_list 
     // is constructed
 	// NB: Remember to mark the memory used for initial boot page table i.e (va>=BOOT_PAGE_TABLE_START && va < BOOT_PAGE_TABLE_END) as in-use (not free)
-      size_t i;
+    size_t i;
 	struct PageInfo* last = NULL;
 	for (i = 0; i < npages; i++) {
 		pages[i].pp_ref = 0;
@@ -392,12 +376,11 @@ page_init(void)
 	}
 
 	page_free_list= page_free_list->pp_link;
-pages[IOPHYSMEM/PGSIZE-1].pp_link=&pages[PADDR(boot_alloc(0))/PGSIZE];
+	pages[IOPHYSMEM/PGSIZE-1].pp_link=&pages[PADDR(boot_alloc(0))/PGSIZE];
 
 	for (i=IOPHYSMEM/PGSIZE;i<PADDR(boot_alloc(0))/PGSIZE;i++)
 		pages[i].pp_link=NULL;
- cprintf("finished page init\n");
-                
+ 	cprintf("finished page init\n");   
 }
 
 //
@@ -415,7 +398,6 @@ pages[IOPHYSMEM/PGSIZE-1].pp_link=&pages[PADDR(boot_alloc(0))/PGSIZE];
 struct PageInfo *
 page_alloc(int alloc_flags)
 {
-
   // Fill this function in
 	if (page_free_list==NULL) return NULL;
 	struct PageInfo* tmp=page_free_list;
@@ -426,13 +408,11 @@ page_alloc(int alloc_flags)
 	tmp->pp_link=NULL;
 	return tmp;
 	// Fill this function in
-
 }
 //
 // Initialize a Page structure.
 // The result has null links and 0 refcount.
 // Note that the corresponding physical page is NOT initialized!
-//
 static void
 page_initpp(struct PageInfo *pp)
 {
@@ -458,7 +438,6 @@ page_free(struct PageInfo *pp)
 	}
 	pp->pp_link=page_free_list;
 	page_free_list=pp;
-       
 }         
 //
 // Decrement the reference count on a page,
