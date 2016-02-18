@@ -620,13 +620,16 @@ page_insert(pml4e_t *pml4e, struct PageInfo *pp, void *va, int perm)
 {
 	// Fill this function in
 	pte_t* ad = pml4e_walk(pml4e, va, 1);
-	if(ad == NULL){
-
+	if(ad == NULL){//page table could not be allocated
+		return -E_NO_MEM;
 	}
-	if( (*ad) != NULL ){
+	struct PageInfo * phy_pageInfo = page_lookup(pml4e, va, NULL);
+	if( phy_pageInfo != NULL ){
 		page_remove(pml4e, va);
 	}
-	pa2page(*ad)
+	*ad = page2pa(pp) | perm | PTE_P;
+
+	pp->pp_ref++;
 	return 0;
 }
 
@@ -675,7 +678,7 @@ page_remove(pml4e_t *pml4e, void *va)
 {
 	// Fill this function in
 	pte_t** ad = NULL;
-	struct PageInfo * phy_pageInfo = page_lookup(pm14e, va, ad);
+	struct PageInfo * phy_pageInfo = page_lookup(pml4e, va, ad);
 	if(phy_pageInfo==NULL){//1
 		return;
 	}
