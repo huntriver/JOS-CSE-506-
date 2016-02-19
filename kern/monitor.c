@@ -155,10 +155,58 @@ mon_dump(int argc, char **argv, struct Trapframe *tf)
 {
 	if (argc!=4)
 		goto usage;
-	
+	char *rest;
+	uint64_t lower_addr,upper_addr,i;
+	//cprintf("%s\n",argv[1]);
+	// if (strcmp(argv[1],"p")==0)
+	// 	cprintf("p\n");
+	// 	if (strcmp(argv[1],"v")==0)
+	// 	cprintf("v\n");
+	if (!(strcmp(argv[1],"p")==0 || strcmp(argv[1],"v")==0))
+		goto usage;
+	//cprintf("1\n");
+	lower_addr=strtol(argv[2],&rest,16);
+	if (strcmp(rest,"")!=0){
+		goto usage;
+	}
+	upper_addr=strtol(argv[3],&rest,16);
+	if (strcmp(rest,"")!=0){
+		goto usage;
+	}
+
+	if (upper_addr<lower_addr)
+	{
+		cprintf("dump: upper_address must not be less than lower_address!\n");
+		return 0;
+	}
+	if (strcmp(argv[1],"p")==0)
+	{
+		if (PPN(upper_addr) >= npages){
+			cprintf("dump: address must not be extend across page boundaries!\n");
+			return 0;
+		}
+		cprintf("Physical Address		Content of Address\n");
+	}
+	else
+		cprintf("Virtual Address 		Content of Address\n");
+
+
+	i=lower_addr;
+
+	while(i<=upper_addr)
+	{
+		//cprintf("boot_pml4e:%x\n",boot_pml4e);
+		//cprintf("0x%x\n",KADDR(i));
+		cprintf("0x%x		0x%x\n",i,(strcmp(argv[1],"p")==0)?*((uint64_t*)KADDR(i)):*((uint64_t*)KADDR(PADDR(i))));
+		i+=4;
+
+	};
+
+
+
 	return 0;
 	usage:
-	  cprintf("usage: dump [p|v] <address(base 16)>\n");
+	  cprintf("usage: dump p|v <lower_address(base 16)> <upper_address(base 16)>\n");
 	  return 0;
 }
 
@@ -220,6 +268,7 @@ monitor(struct Trapframe *tf)
 	cprintf("%C%s\n", YELLOW, "YELLOW");
 	cprintf("%C%s\n", RED, "RED");
 	cprintf("%C%s\n", BWHITE, "BRIGHT WHITE");
+	cprintf("upages %x  kstacktop %x  kernbase %x\n",UPAGES,KSTACKTOP,KERNBASE);
 	while (1) {
 		buf = readline("K> ");
 		if (buf != NULL)

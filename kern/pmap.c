@@ -73,7 +73,7 @@ multiboot_read(multiboot_info_t* mbinfo, size_t* basemem, size_t* extmem) {
 	cprintf("\n");
 
 	// Sanitize the list
-	for(i=1;i < (mbinfo->mmap_lengtha / (sizeof(memory_map_t))); i++) {
+	for(i=1;i < (mbinfo->mmap_length / (sizeof(memory_map_t))); i++) {
 		memory_map_t* prev = mmap_list[i-1];
 		memory_map_t* this = mmap_list[i];
 
