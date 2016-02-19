@@ -30,6 +30,7 @@ static struct Command commands[] = {
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
 	{ "backtrace", "backtrace", mon_backtrace },
 	{ "showmappings", "showmappings", mon_showmappings },
+	{ "dump", "dump", mon_dump },
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
 
@@ -143,10 +144,25 @@ mon_showmappings(int argc, char **argv, struct Trapframe *tf)
 	return 0;
 
 	usage:
-	  cprintf("usage: showmappings lower_address(base 16) upper_address(base 16)\n");
+	  cprintf("usage: showmappings <lower_address(base 16)> <upper_address(base 16)>\n");
 	  return 0;
 	
 }
+
+
+int
+mon_dump(int argc, char **argv, struct Trapframe *tf)
+{
+	if (argc!=4)
+		goto usage;
+	
+	return 0;
+	usage:
+	  cprintf("usage: dump [p|v] <address(base 16)>\n");
+	  return 0;
+}
+
+
 
 /***** Kernel monitor command interpreter *****/
 
