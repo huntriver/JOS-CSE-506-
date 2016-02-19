@@ -73,7 +73,7 @@ multiboot_read(multiboot_info_t* mbinfo, size_t* basemem, size_t* extmem) {
 	cprintf("\n");
 
 	// Sanitize the list
-	for(i=1;i < (mbinfo->mmap_length / (sizeof(memory_map_t))); i++) {
+	for(i=1;i < (mbinfo->mmap_lengtha / (sizeof(memory_map_t))); i++) {
 		memory_map_t* prev = mmap_list[i-1];
 		memory_map_t* this = mmap_list[i];
 
@@ -270,9 +270,6 @@ x64_vm_init(void)
 	// memory management will go through the page_* functions. In
 	// particular, we can now map memory using boot_map_region or page_insert
 	page_init();
-	// check_page_free_list(1);
-	// check_page_alloc();
-
 
 	//////////////////////////////////////////////////////////////////////
 	// Now we set up virtual memory 
@@ -400,15 +397,16 @@ struct PageInfo *
 page_alloc(int alloc_flags)
 {
   // Fill this function in
-	if (page_free_list==NULL) return NULL;
-	struct PageInfo* tmp=page_free_list;
-	if (alloc_flags & ALLOC_ZERO)
-		memset(page2kva(tmp),'\0',PGSIZE);
-	
-	page_free_list=page_free_list->pp_link;
-	tmp->pp_link=NULL;
+	if (page_free_list == NULL) {
+		return NULL;
+	}
+	struct PageInfo* tmp = page_free_list;
+	if (alloc_flags & ALLOC_ZERO){
+		memset(page2kva(tmp), '\0', PGSIZE);
+	}
+	page_free_list = page_free_list->pp_link;
+	tmp->pp_link = NULL;
 	return tmp;
-	// Fill this function in
 }
 //
 // Initialize a Page structure.
@@ -431,14 +429,13 @@ page_free(struct PageInfo *pp)
 	// pp->pp_link is not NULL.
          //if(pp->pp_link != NULL || pp->pp_ref != 0)
            //panic("page_free: Page is still in use");
-	if (pp->pp_ref!=0 || pp->pp_link!=NULL)
-	{
-		cprintf("pp_ref %d\n",pp->pp_ref);
+	if (pp->pp_ref != 0 || pp->pp_link != NULL){
+		cprintf("pp_ref %d\n",pp->pp_ref);//test
 		panic("pp_ref is nonzero or pp_link is not NULL\n");
 		return;
 	}
-	pp->pp_link=page_free_list;
-	page_free_list=pp;
+	pp->pp_link = page_free_list;
+	page_free_list = pp;
 }         
 //
 // Decrement the reference count on a page,
@@ -448,7 +445,6 @@ void
 page_decref(struct PageInfo* pp)
 {
 	if (--pp->pp_ref == 0){
-		//cprintf("in\n");
 		page_free(pp);
 	}
 }
@@ -479,36 +475,33 @@ page_decref(struct PageInfo* pp)
 //
 
 pte_t *
-pml4e_walk(pml4e_t *pml4e, const void *va, int create)
-{
-
-	pte_t * pte;
+pml4e_walk(pml4e_t *pml4e, const void *va, int create){
+	pte_t *pte;
 	pml4e_t *pdpe;
 	struct PageInfo *newPage;
 	pdpe = &pml4e[PML4(va)];
-	if(!(*pdpe  & PTE_P))
-	{
-		if (!create) return NULL;
-		if (!(newPage=page_alloc(ALLOC_ZERO))) return NULL;
+	if(!(*pdpe & PTE_P)){
+		if (!create) {
+			return NULL;
+		}
+		if (!(newPage = page_alloc(ALLOC_ZERO))) {
+			return NULL;
+		}
 		newPage->pp_ref++;
-		*pdpe = page2pa(newPage)|PTE_P | PTE_W | PTE_U;
+		*pdpe = page2pa(newPage) | PTE_P | PTE_W | PTE_U;
 		pte = pdpe_walk(KADDR(PTE_ADDR(*pdpe)), va, create);
-		if (!pte)
-		{
-			//cprintf("newpage_ref1 %d\n",newPage->pp_ref);
-			newPage->pp_ref=0;
+
+		if (!pte){
+			newPage->pp_ref = 0;
 			page_free(newPage);
-			*pdpe=0;
+			*pdpe = 0;
 		}
 	}
-
-	else
+	else{
 		pte = pdpe_walk(KADDR(PTE_ADDR(*pdpe)), va, create);
-
-	
+	}
 	return pte;
 }
-
 
 // Given a pdpe i.e page directory pointer pdpe_walk returns the pointer to page table entry
 // The programming logic in this function is similar to pml4e_walk.
@@ -516,33 +509,30 @@ pml4e_walk(pml4e_t *pml4e, const void *va, int create)
 // Hints are the same as in pml4e_walk
 pte_t *
 pdpe_walk(pdpe_t *pdpe,const void *va,int create){
-
-	pte_t * pte;
+	pte_t *pte;
 	pdpe_t *pde;
 	struct PageInfo *newPage;
 	pde = &pdpe[PDPE(va)];
-	if(!(*pde & PTE_P))
-	{
-		if (!create) return NULL;
-		if (!(newPage=page_alloc(ALLOC_ZERO))) return NULL;
+	if(!(*pde & PTE_P)){
+		if (!create) {
+			return NULL;
+		}
+		if (!(newPage=page_alloc(ALLOC_ZERO))) {
+			return NULL;
+		}
 		newPage->pp_ref++;
-		*pde = page2pa(newPage)|PTE_P | PTE_W | PTE_U;
+		*pde = page2pa(newPage) | PTE_P | PTE_W | PTE_U;
 		pte = pgdir_walk(KADDR(PTE_ADDR(*pde)), va, create);
-		if (!pte)
-		{
-			//cprintf("newpage_ref %d\n",newPage->pp_ref);
+		if (!pte){
 			newPage->pp_ref=0;
 			page_free(newPage);
 			*pde=0;
 		}
 	}
-
-	else
+	else{
 		pte = pgdir_walk(KADDR(PTE_ADDR(*pde)), va, create);
-
-
+	}
 	return pte;
-
 }
 // Given 'pgdir', a pointer to a page directory, pgdir_walk returns
 // a pointer to the page table entry (PTE). 
@@ -552,25 +542,21 @@ pdpe_walk(pdpe_t *pdpe,const void *va,int create){
 pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
-
-	pte_t * pte;
+	pte_t *pte;
 	struct PageInfo *newPage;
 	pte = &pgdir[PDX(va)];
-	if(!(*pte & PTE_P))
-	{
-
-		if (!create) return NULL;
-		if (!(newPage=page_alloc(ALLOC_ZERO))) return NULL;
+	if(!(*pte & PTE_P)){
+		if (!create) {
+			return NULL;
+		}
+		if (!(newPage=page_alloc(ALLOC_ZERO))) {
+			return NULL;
+		}
 		newPage->pp_ref++;
-
-		*pte = page2pa(newPage) |PTE_P|PTE_U|PTE_W;
-
+		*pte = page2pa(newPage) | PTE_P | PTE_U | PTE_W;
 	}
-
 	pte = KADDR(PTE_ADDR(*pte));
-
 	return &pte[PTX(va)];
-	
 }
 //
 // Map [va, va+size) of virtual address space to physical [pa, pa+size)
@@ -586,13 +572,12 @@ static void
 boot_map_region(pml4e_t *pml4e, uintptr_t la, size_t size, physaddr_t pa, int perm)
 {
 	// Fill this function in
-	int i=0;
+	int i = 0;
 	pte_t *pte;
-	while (i<size)
-	{
-		pte=pml4e_walk(pml4e,(void *)(la+i),1);
-		*pte=(pa+i)|perm;
-		i+=PGSIZE;
+	while (i < size){
+		pte = pml4e_walk(pml4e, (void *)(la + i), 1);
+		*pte = (pa + i) | perm;
+		i += PGSIZE;
 	}
 }
 
@@ -625,21 +610,15 @@ int
 page_insert(pml4e_t *pml4e, struct PageInfo *pp, void *va, int perm)
 {
 	// Fill this function in
-	pte_t* ad = pml4e_walk(pml4e, va, 1);
-	//cprintf("here?\n");
+	pte_t *ad = pml4e_walk(pml4e, va, 1);
 	if(ad == NULL){//page table could not be allocated
 		return -E_NO_MEM;
 	}
-	struct PageInfo * phy_pageInfo = page_lookup(pml4e, va, NULL);
-	//cprintf("here2?\n");
+	struct PageInfo *phy_pageInfo = page_lookup(pml4e, va, NULL);
 	if( phy_pageInfo != NULL ){
-			//cprintf("here3?\n");
 		page_remove(pml4e, va);
-		//	cprintf("here4?\n");
 	}
-	
 	*ad = page2pa(pp) | perm | PTE_P;
-
 	pp->pp_ref++;
 	return 0;
 }
@@ -659,11 +638,11 @@ struct PageInfo *
 page_lookup(pml4e_t *pml4e, void *va, pte_t **pte_store)
 {
 	// Fill this function in
-	pte_t* ad = pml4e_walk(pml4e, va, 1);
+	pte_t *ad = pml4e_walk(pml4e, va, 1);
 	if(ad == NULL){
 		return NULL;
 	}
-	if(pte_store!=0){
+	if(pte_store != 0){
 		*pte_store = ad;
 	}
 	return pa2page(*ad);
@@ -671,14 +650,14 @@ page_lookup(pml4e_t *pml4e, void *va, pte_t **pte_store)
 
 //
 // Unmaps the physical page at virtual address 'va'.
-// If there is no physical page at that address, silently does nothing.
+// 1-If there is no physical page at that address, silently does nothing.
 //
 // Details:
-//   - The ref count on the physical page should decrement.
-//   - The physical page should be freed if the refcount reaches 0.
-//   - The pg table entry corresponding to 'va' should be set to 0.
+//   2- The ref count on the physical page should decrement.
+//   3- The physical page should be freed if the refcount reaches 0.
+//   4- The pg table entry corresponding to 'va' should be set to 0.
 //     (if such a PTE exists)
-//   - The TLB must be invalidated if you remove an entry from
+//   5- The TLB must be invalidated if you remove an entry from
 //     the page table.
 //
 // Hint: The TA solution is implemented using page_lookup,
@@ -688,26 +667,17 @@ void
 page_remove(pml4e_t *pml4e, void *va)
 {
 	//Fill this function in
-	pte_t* ad = NULL;
-	struct PageInfo * phy_pageInfo = page_lookup(pml4e, va, &ad);
-	if(phy_pageInfo==NULL){//1
+	pte_t *ad = NULL;
+	struct PageInfo *phy_pageInfo = page_lookup(pml4e, va, &ad);
+	if(phy_pageInfo == NULL){//1
 		return;
 	}
 	page_decref(phy_pageInfo);//2,3
+
 	if(ad != NULL){//4-(if such a PTE exists)
 		*ad = 0;//4-set to 0
 		tlb_invalidate(pml4e,va);//5
 	}
-	  //  pte_t *pte;
-   // pte = 0;
-   // struct PageInfo* page;
-   // page = page_lookup(pml4e, va, &pte);
-   // if(page != NULL)
-   // {
-   //   page_decref(page);
-   //   *pte = 0;    
-   //   tlb_invalidate(pml4e, va);
-   // }  
 }
 
 //
