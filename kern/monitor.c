@@ -31,6 +31,7 @@ static struct Command commands[] = {
 	{ "backtrace", "backtrace", mon_backtrace },
 	{ "showmappings", "showmappings", mon_showmappings },
 	{ "dump", "dump", mon_dump },
+	{ "setpermission", "setpermission", mon_setpermission },
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
 
@@ -124,19 +125,19 @@ mon_showmappings(int argc, char **argv, struct Trapframe *tf)
 
 	//cprintf("suc!\n");
 	pte_t *pte;
-	cprintf("Virtual Address	Physical Address	PTE_P	PTE_W	PTE_U\n");
+	cprintf("   Virtual Address\t  Physical Address\tPTE_P\tPTE_W\tPTE_U\n");
 	i=lower_addr;
 	while(i<=upper_addr)
 	{
 		//cprintf("boot_pml4e:%x\n",boot_pml4e);
 		pte=pml4e_walk(boot_pml4e,(void *)i,0);
-		cprintf("0x%x	",i);
+		cprintf("0x%016x\t",i);
 		if (!pte) {
 			cprintf("address not mapped\n");
 			
 		}
 		else
-		cprintf("0x%x 	%x	%x 	%x\n",PTE_ADDR(*pte),*pte&PTE_P,*pte&PTE_W,*pte&PTE_U);
+		cprintf("0x%016x\t%5d\t%5d\t%5d\n",PTE_ADDR(*pte),(*pte & PTE_P)?1:0,(*pte& PTE_W)?1:0,(*pte & PTE_U)?1:0);
 
 		i+=PGSIZE;
 
@@ -149,6 +150,46 @@ mon_showmappings(int argc, char **argv, struct Trapframe *tf)
 	
 }
 
+int
+mon_setpermission(int argc, char **argv, struct Trapframe *tf)
+{
+	if (argc!=5)
+		goto usage;
+	char *rest;
+	uint64_t addr;
+	int permission;
+
+	//cprintf("1\n");
+	addr=strtol(argv[1],&rest,16);
+	if (strcmp(rest,"")!=0){
+		goto usage;
+	}
+
+	if (!(strcmp(argv[2],"0")==0 || strcmp(argv[2],"1")==0))
+		goto usage;
+	if (!(strcmp(argv[3],"0")==0 || strcmp(argv[3],"1")==0))
+		goto usage;
+	if (!(strcmp(argv[4],"0")==0 || strcmp(argv[4],"1")==0))
+		goto usage;
+
+	
+
+	pte_t* pte=pml4e_walk(boot_pml4e,(void *)addr,0);
+	if (!pte) {
+		cprintf("address not mapped\n");
+		return 0;
+	}
+	pte_t tmp=*pte;
+	//permission=(strcmp(argv[2],"0")==0?0:PTE_P)|(strcmp(argv[3],"0")==0?0:PTE_W)|(strcmp(argv[4],"0")==0?0:PTE_U)
+	*pte= PTE_ADDR(*pte)|(strcmp(argv[2],"0")==0?0:PTE_P)|(strcmp(argv[3],"0")==0?0:PTE_W)|(strcmp(argv[4],"0")==0?0:PTE_U);
+	cprintf("permission changed from %d %d %d ",(tmp & PTE_P)?1:0,(tmp& PTE_W)?1:0,(tmp & PTE_U)?1:0);
+	cprintf("to %d %d %d \n",(*pte & PTE_P)?1:0,(*pte& PTE_W)?1:0,(*pte & PTE_U)?1:0);
+	return 0;
+	usage:
+	  cprintf("usage: setpermission <address(base 16)> <PTE_P(0|1)> <PTE_U(0|1)> <PTE_W(0|1)>\n");
+	  return 0;
+}
+
 
 int
 mon_dump(int argc, char **argv, struct Trapframe *tf)
@@ -157,11 +198,6 @@ mon_dump(int argc, char **argv, struct Trapframe *tf)
 		goto usage;
 	char *rest;
 	uint64_t lower_addr,upper_addr,i;
-	//cprintf("%s\n",argv[1]);
-	// if (strcmp(argv[1],"p")==0)
-	// 	cprintf("p\n");
-	// 	if (strcmp(argv[1],"v")==0)
-	// 	cprintf("v\n");
 	if (!(strcmp(argv[1],"p")==0 || strcmp(argv[1],"v")==0))
 		goto usage;
 	//cprintf("1\n");
@@ -185,19 +221,17 @@ mon_dump(int argc, char **argv, struct Trapframe *tf)
 			cprintf("dump: address must not be extend across page boundaries!\n");
 			return 0;
 		}
-		cprintf("Physical Address		Content of Address\n");
+		cprintf("  Physical Address\tContent of Address\n");
 	}
 	else
-		cprintf("Virtual Address 		Content of Address\n");
+		cprintf("   Virtual Address\tContent of Address\n");
 
 
 	i=lower_addr;
 
 	while(i<=upper_addr)
 	{
-		//cprintf("boot_pml4e:%x\n",boot_pml4e);
-		//cprintf("0x%x\n",KADDR(i));
-		cprintf("0x%x		0x%x\n",i,(strcmp(argv[1],"p")==0)?*((uint64_t*)KADDR(i)):*((uint64_t*)KADDR(PADDR(i))));
+		cprintf("0x%016x\t0x%016x\n",i,(strcmp(argv[1],"p")==0)?*((uint64_t*)KADDR(i)):*((uint64_t*)KADDR(PADDR(i))));
 		i+=4;
 
 	};
