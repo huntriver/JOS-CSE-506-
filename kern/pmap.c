@@ -1154,5 +1154,3 @@ check_page_free_list(bool only_low_memory)
 
 	cprintf("check_page() succeeded!\n");
 }
-
->>>>>>> lab2
