@@ -7,6 +7,7 @@
 #include <inc/string.h>
 #include <inc/stdarg.h>
 #include <inc/error.h>
+#include <inc/color.h>
 
 /*
  * Space or zero padding and a field width are supported for the numeric
@@ -95,8 +96,11 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 	va_copy(aq,ap);
 	while (1) {
 		while ((ch = *(unsigned char *) fmt++) != '%') {
-			if (ch == '\0')
+			if (ch == '\0'){
+				current_color=WHITE;
 				return;
+			}
+				
 			putch(ch, putdat);
 		}
 
@@ -211,10 +215,13 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 		// (unsigned) octal
 		case 'o':
 			// Replace this with your code.
-			putch('X', putdat);
-			putch('X', putdat);
-			putch('X', putdat);
-			break;
+			// putch('X', putdat);
+			// putch('X', putdat);
+			// putch('X', putdat);
+			// break;
+			num = getuint(&aq, 3);
+			base = 8;
+			goto number;
 
 		// pointer
 		case 'p':
@@ -236,6 +243,11 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 		// escaped '%' character
 		case '%':
 			putch(ch, putdat);
+			break;
+		
+		case 'C':
+		    num=getuint(&aq,3);		
+			current_color=num;
 			break;
 
 		// unrecognized escape sequence - just print it literally
