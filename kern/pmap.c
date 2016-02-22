@@ -264,6 +264,9 @@ x64_vm_init(void)
 	cprintf("pages: %x\n", pages);
 
 	//////////////////////////////////////////////////////////////////////
+	// Make 'envs' point to an array of size 'NENV' of 'struct Env'.
+	// LAB 3: Your code here.
+	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
 	// up the list of free physical pages. Once we've done so, all further
 	// memory management will go through the page_* functions. In
@@ -287,6 +290,16 @@ x64_vm_init(void)
 	cprintf("(sizeof(struct PageInfo) * npages): %x\n",(sizeof(struct PageInfo) * npages));
 	boot_map_region(pml4e,UPAGES,(sizeof(struct PageInfo) * npages),PADDR(pages),PTE_U | PTE_P);
 	cprintf("PADDR(pages) %x\n", PADDR(pages));
+
+	//////////////////////////////////////////////////////////////////////
+	// Map the 'envs' array read-only by the user at linear address UENVS
+	// (ie. perm = PTE_U | PTE_P).
+	// Permissions:
+	//    - the new image at UENVS  -- kernel R, user R
+	//    - envs itself -- kernel RW, user NONE
+	// LAB 3: Your code here.
+
+		
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
 	// stack.  The kernel stack grows down from virtual address KSTACKTOP.
@@ -892,53 +905,58 @@ check_page_free_list(bool only_low_memory)
 // but it is a pretty good sanity check.
 //
 
-	static void
-	check_boot_pml4e(pml4e_t *pml4e)
-	{
-		uint64_t i, n;
+static void
+check_boot_pml4e(pml4e_t *pml4e)
+{
+	uint64_t i, n;
 
-		pml4e = boot_pml4e;
+	pml4e = boot_pml4e;
 
 	// check pages array
-		n = ROUNDUP(npages*sizeof(struct PageInfo), PGSIZE);
-		for (i = 0; i < n; i += PGSIZE) {
-		 //cprintf("%x %x %x\n",i,check_va2pa(pml4e, UPAGES + i), PADDR(pages) + i);
-			assert(check_va2pa(pml4e, UPAGES + i) == PADDR(pages) + i);
-		}
+	n = ROUNDUP(npages*sizeof(struct PageInfo), PGSIZE);
+	for (i = 0; i < n; i += PGSIZE) {
+		// cprintf("%x %x %x\n",i,check_va2pa(pml4e, UPAGES + i), PADDR(pages) + i);
+		assert(check_va2pa(pml4e, UPAGES + i) == PADDR(pages) + i);
+	}
 
+	// check envs array (new test for lab 3)
+	n = ROUNDUP(NENV*sizeof(struct Env), PGSIZE);
+	for (i = 0; i < n; i += PGSIZE)
+		assert(check_va2pa(pml4e, UENVS + i) == PADDR(envs) + i);
 
 	// check phys mem
-		for (i = 0; i < npages * PGSIZE; i += PGSIZE)
-			assert(check_va2pa(pml4e, KERNBASE + i) == i);
+	for (i = 0; i < npages * PGSIZE; i += PGSIZE)
+		assert(check_va2pa(pml4e, KERNBASE + i) == i);
 
 	// check kernel stack
-		for (i = 0; i < KSTKSIZE; i += PGSIZE) {
-			assert(check_va2pa(pml4e, KSTACKTOP - KSTKSIZE + i) == PADDR(bootstack) + i);
-		}
-		assert(check_va2pa(pml4e, KSTACKTOP - KSTKSIZE - 1 )  == ~0);
-
-		pdpe_t *pdpe = KADDR(PTE_ADDR(boot_pml4e[1]));
-		pde_t  *pgdir = KADDR(PTE_ADDR(pdpe[0]));
-	// check PDE permissions
-		for (i = 0; i < NPDENTRIES; i++) {
-			switch (i) {
-			//case PDX(UVPT):
-				case PDX(KSTACKTOP - 1):
-				case PDX(UPAGES):
-				assert(pgdir[i] & PTE_P);
-				break;
-				default:
-				if (i >= PDX(KERNBASE)) {
-					if (pgdir[i] & PTE_P)
-						assert(pgdir[i] & PTE_W);
-					else
-						assert(pgdir[i] == 0);
-				} 
-				break;
-			}
-		}
-		cprintf("check_boot_pml4e() succeeded!\n");
+	for (i = 0; i < KSTKSIZE; i += PGSIZE) {
+		assert(check_va2pa(pml4e, KSTACKTOP - KSTKSIZE + i) == PADDR(bootstack) + i);
 	}
+	assert(check_va2pa(pml4e, KSTACKTOP - KSTKSIZE - 1 )  == ~0);
+
+	pdpe_t *pdpe = KADDR(PTE_ADDR(boot_pml4e[1]));
+	pde_t  *pgdir = KADDR(PTE_ADDR(pdpe[0]));
+	// check PDE permissions
+	for (i = 0; i < NPDENTRIES; i++) {
+		switch (i) {
+			//case PDX(UVPT):
+		case PDX(KSTACKTOP - 1):
+		case PDX(UPAGES):
+		case PDX(UENVS):
+			assert(pgdir[i] & PTE_P);
+			break;
+		default:
+			if (i >= PDX(KERNBASE)) {
+				if (pgdir[i] & PTE_P)
+					assert(pgdir[i] & PTE_W);
+				else
+					assert(pgdir[i] == 0);
+			} 
+			break;
+		}
+	}
+	cprintf("check_boot_pml4e() succeeded!\n");
+}
 
 // This function returns the physical address of the page containing 'va',
 // defined by the 'pml4e'.  The hardware normally performs
