@@ -18,7 +18,7 @@ extern long gdt_pd;
  * a saved trapframe and printing the current trapframe and print some
  * additional information in the latter case.
  */
-static struct Trapframe *last_tf;
+ static struct Trapframe *last_tf;
 
 /* Interrupt descriptor table.  (Must be built at run time because
  * shifted function addresses can't be represented in relocation records.)
@@ -103,8 +103,8 @@ trap_init(void)
 	SETGATE(idt[18], 0, GD_KT, entry18, 0);
 	SETGATE(idt[19], 0, GD_KT, entry19, 0);
 
-    idt_pd.pd_lim = sizeof(idt)-1;
-    idt_pd.pd_base = (uint64_t)idt;
+	idt_pd.pd_lim = sizeof(idt)-1;
+	idt_pd.pd_base = (uint64_t)idt;
 	// Per-CPU setup
 	trap_init_percpu();
 }
@@ -185,14 +185,17 @@ trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
-
-	// Unexpected trap: The user process or the kernel has a bug.
-	print_trapframe(tf);
-	if (tf->tf_cs == GD_KT)
-		panic("unhandled trap in kernel");
+	if (tf->tf_trapno == T_PGFLT)
+		page_fault_handler (tf);
 	else {
-		env_destroy(curenv);
-		return;
+	// Unexpected trap: The user process or the kernel has a bug.
+		print_trapframe(tf);
+		if (tf->tf_cs == GD_KT)
+			panic("unhandled trap in kernel");
+		else {
+			env_destroy(curenv);
+			return;
+		}
 	}
 }
 
