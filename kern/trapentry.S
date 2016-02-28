@@ -76,14 +76,16 @@
  */
 
  _alltraps:
-	movq %ds,%rax
-	pushw %rax
-	movq %es,%rax
-	pushq %rax
-	pushaq
-	movq $GD_KD, %rax
-	movq %rax, %ds
-	movq %rax, %es
-	pushq %rsp
-	call trap
+ 	movq %ds,%rax 
+ 	pushq %rax 
+ 	movq %es, %rax 
+ 	pushq %rax 
+ 	PUSHA 
+ 	mov %rsp, %rdi
+ 	movq $(GD_KD), %rax
+ 	movq %rax, %es
+ 	movq %rax, %ds
+ 	pushq %rsp
+ 	call trap
+ 	
 
