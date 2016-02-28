@@ -64,8 +64,45 @@ void
 trap_init(void)
 {
 	extern struct Segdesc gdt[];
+	void entry0();
+	void entry1();
+	void entry2();
+	void entry3();
+	void entry4();
+	void entry5();
+	void entry6();
+	void entry7();
+	void entry8();
+	void entry10();
+	void entry11();
+	void entry12();
+	void entry13();
+	void entry14();
+	void entry16();
+	void entry17();
+	void entry18();
+	void entry19();
 
 	// LAB 3: Your code here.
+	SETGATE(idt[0], 0, GD_KT, entry0, 0);
+	SETGATE(idt[1], 0, GD_KT, entry1, 0);
+	SETGATE(idt[2], 0, GD_KT, entry2, 0);
+	SETGATE(idt[3], 0, GD_KT, entry3, 3);
+	SETGATE(idt[4], 0, GD_KT, entry4, 0);
+	SETGATE(idt[5], 0, GD_KT, entry5, 0);
+	SETGATE(idt[6], 0, GD_KT, entry6, 0);
+	SETGATE(idt[7], 0, GD_KT, entry7, 0);
+	SETGATE(idt[8], 0, GD_KT, entry8, 0);
+	SETGATE(idt[10], 0, GD_KT, entry10, 0);
+	SETGATE(idt[11], 0, GD_KT, entry11, 0);
+	SETGATE(idt[12], 0, GD_KT, entry12, 0);
+	SETGATE(idt[13], 0, GD_KT, entry13, 0);
+	SETGATE(idt[14], 0, GD_KT, entry14, 0);
+	SETGATE(idt[16], 0, GD_KT, entry16, 0);
+	SETGATE(idt[17], 0, GD_KT, entry17, 0);
+	SETGATE(idt[18], 0, GD_KT, entry18, 0);
+	SETGATE(idt[19], 0, GD_KT, entry19, 0);
+
     idt_pd.pd_lim = sizeof(idt)-1;
     idt_pd.pd_base = (uint64_t)idt;
 	// Per-CPU setup

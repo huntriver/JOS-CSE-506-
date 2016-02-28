@@ -44,12 +44,28 @@
 
 .text
 
-/*
- * Lab 3: Your code here for generating entry points for the different traps.
+/*Lab 3: Your code here for generating entry points for the different traps.
    Find the PUSHA,POPA macros in kern/macro.h. Since amd64 doesn't support
-   pusha,popa so you will find these macros handy.
- */
+   pusha,popa so you will find these macros handy.*/
 
+ 	TRAPHANDLER_NOEC(entry0, 0)
+    TRAPHANDLER_NOEC(entry1, 1)
+	TRAPHANDLER_NOEC(entry2, 2)
+    TRAPHANDLER_NOEC(entry3, 3)
+	TRAPHANDLER_NOEC(entry4, 4)
+    TRAPHANDLER_NOEC(entry5, 5)
+	TRAPHANDLER_NOEC(entry6, 6)
+    TRAPHANDLER_NOEC(entry7, 7)
+	TRAPHANDLER(entry8, 8)
+	TRAPHANDLER(entry10, 10)
+    TRAPHANDLER(entry11, 11)
+	TRAPHANDLER(entry12, 12)
+    TRAPHANDLER(entry13, 13)
+	TRAPHANDLER(entry14, 14)
+    TRAPHANDLER_NOEC(entry16, 16)
+    TRAPHANDLER(entry17, 17)
+	TRAPHANDLER_NOEC(entry18, 18)
+    TRAPHANDLER_NOEC(entry19, 19)
 
 
 /*
@@ -58,4 +74,16 @@
  * Hint: Be sure to review the x64 calling convention from lab1
  *       for how to pass a pointer to the trapframe.
  */
+
+ _alltraps:
+	movq %ds,%rax
+	pushw %rax
+	movq %es,%rax
+	pushq %rax
+	pushaq
+	movq $GD_KD, %rax
+	movq %rax, %ds
+	movq %rax, %es
+	pushq %rsp
+	call trap
 
