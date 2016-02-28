@@ -185,9 +185,16 @@ trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
-	if (tf->tf_trapno == T_PGFLT)
-		page_fault_handler (tf);
-	else {
+	switch (tf->tf_trapno)
+	{
+		case T_PGFLT:
+		page_fault_handler(tf);
+		break;
+
+		case T_BRKPT:
+		monitor(tf);
+		break;
+		default:
 	// Unexpected trap: The user process or the kernel has a bug.
 		print_trapframe(tf);
 		if (tf->tf_cs == GD_KT)
@@ -195,6 +202,7 @@ trap_dispatch(struct Trapframe *tf)
 		else {
 			env_destroy(curenv);
 			return;
+
 		}
 	}
 }
