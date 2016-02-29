@@ -730,6 +730,21 @@ int
 user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 {
 	// LAB 3: Your code here.
+	pde_t*  pte;
+	perm |= PTE_P;
+	size_t i = (size_t)va;
+	while (i<(size_t)va+len)
+	{
+		if (i >= ULIM || !(pte = pml4e_walk(env->env_pml4e, (void*)i, 0)) || (*pte & perm) != perm) 
+		{
+			user_mem_check_addr = i;
+			return -E_FAULT;
+		}
+
+		i=ROUNDDOWN (i, PGSIZE)+PGSIZE;
+	}
+
+
 	return 0;
 
 }
@@ -907,58 +922,58 @@ check_page_free_list(bool only_low_memory)
 // but it is a pretty good sanity check.
 //
 
-static void
-check_boot_pml4e(pml4e_t *pml4e)
-{
-	uint64_t i, n;
+	static void
+	check_boot_pml4e(pml4e_t *pml4e)
+	{
+		uint64_t i, n;
 
-	pml4e = boot_pml4e;
+		pml4e = boot_pml4e;
 
 	// check pages array
-	n = ROUNDUP(npages*sizeof(struct PageInfo), PGSIZE);
-	for (i = 0; i < n; i += PGSIZE) {
+		n = ROUNDUP(npages*sizeof(struct PageInfo), PGSIZE);
+		for (i = 0; i < n; i += PGSIZE) {
 		// cprintf("%x %x %x\n",i,check_va2pa(pml4e, UPAGES + i), PADDR(pages) + i);
-		assert(check_va2pa(pml4e, UPAGES + i) == PADDR(pages) + i);
-	}
+			assert(check_va2pa(pml4e, UPAGES + i) == PADDR(pages) + i);
+		}
 
 	// check envs array (new test for lab 3)
-	n = ROUNDUP(NENV*sizeof(struct Env), PGSIZE);
-	for (i = 0; i < n; i += PGSIZE)
-		assert(check_va2pa(pml4e, UENVS + i) == PADDR(envs) + i);
+		n = ROUNDUP(NENV*sizeof(struct Env), PGSIZE);
+		for (i = 0; i < n; i += PGSIZE)
+			assert(check_va2pa(pml4e, UENVS + i) == PADDR(envs) + i);
 
 	// check phys mem
-	for (i = 0; i < npages * PGSIZE; i += PGSIZE)
-		assert(check_va2pa(pml4e, KERNBASE + i) == i);
+		for (i = 0; i < npages * PGSIZE; i += PGSIZE)
+			assert(check_va2pa(pml4e, KERNBASE + i) == i);
 
 	// check kernel stack
-	for (i = 0; i < KSTKSIZE; i += PGSIZE) {
-		assert(check_va2pa(pml4e, KSTACKTOP - KSTKSIZE + i) == PADDR(bootstack) + i);
-	}
-	assert(check_va2pa(pml4e, KSTACKTOP - KSTKSIZE - 1 )  == ~0);
-
-	pdpe_t *pdpe = KADDR(PTE_ADDR(boot_pml4e[1]));
-	pde_t  *pgdir = KADDR(PTE_ADDR(pdpe[0]));
-	// check PDE permissions
-	for (i = 0; i < NPDENTRIES; i++) {
-		switch (i) {
-			//case PDX(UVPT):
-		case PDX(KSTACKTOP - 1):
-		case PDX(UPAGES):
-		case PDX(UENVS):
-			assert(pgdir[i] & PTE_P);
-			break;
-		default:
-			if (i >= PDX(KERNBASE)) {
-				if (pgdir[i] & PTE_P)
-					assert(pgdir[i] & PTE_W);
-				else
-					assert(pgdir[i] == 0);
-			} 
-			break;
+		for (i = 0; i < KSTKSIZE; i += PGSIZE) {
+			assert(check_va2pa(pml4e, KSTACKTOP - KSTKSIZE + i) == PADDR(bootstack) + i);
 		}
+		assert(check_va2pa(pml4e, KSTACKTOP - KSTKSIZE - 1 )  == ~0);
+
+		pdpe_t *pdpe = KADDR(PTE_ADDR(boot_pml4e[1]));
+		pde_t  *pgdir = KADDR(PTE_ADDR(pdpe[0]));
+	// check PDE permissions
+		for (i = 0; i < NPDENTRIES; i++) {
+			switch (i) {
+			//case PDX(UVPT):
+				case PDX(KSTACKTOP - 1):
+				case PDX(UPAGES):
+				case PDX(UENVS):
+				assert(pgdir[i] & PTE_P);
+				break;
+				default:
+				if (i >= PDX(KERNBASE)) {
+					if (pgdir[i] & PTE_P)
+						assert(pgdir[i] & PTE_W);
+					else
+						assert(pgdir[i] == 0);
+				} 
+				break;
+			}
+		}
+		cprintf("check_boot_pml4e() succeeded!\n");
 	}
-	cprintf("check_boot_pml4e() succeeded!\n");
-}
 
 // This function returns the physical address of the page containing 'va',
 // defined by the 'pml4e'.  The hardware normally performs

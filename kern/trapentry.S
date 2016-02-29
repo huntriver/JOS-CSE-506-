@@ -63,10 +63,10 @@
     TRAPHANDLER(entry13, 13)
 	TRAPHANDLER(entry14, 14)
     TRAPHANDLER_NOEC(entry16, 16)
-    TRAPHANDLER(entry17, 17)
-	TRAPHANDLER_NOEC(entry18, 18)
-    TRAPHANDLER_NOEC(entry19, 19)
-
+ #    TRAPHANDLER(entry17, 17)
+	# TRAPHANDLER_NOEC(entry18, 18)
+ #    TRAPHANDLER_NOEC(entry19, 19)
+  	TRAPHANDLER_NOEC(entry48, 48)
 
 /*
  * Lab 3: Your code here for _alltraps
@@ -76,16 +76,14 @@
  */
 
  _alltraps:
- 	movq %ds,%rax 
- 	pushq %rax 
- 	movq %es, %rax 
- 	pushq %rax 
- 	PUSHA 
- 	mov %rsp, %rdi
- 	movq $(GD_KD), %rax
- 	movq %rax, %es
- 	movq %rax, %ds
- 	pushq %rsp
- 	call trap
- 	
+        movw %ds,%r15
+        pushq %r15
+        movw %es, %r15
+        pushq %r15
+        PUSHA
 
+        movw $(GD_KD), %r15
+        movw %r15, %es
+        movw %r15, %ds
+        mov %rsp, %rdi
+        call trap
