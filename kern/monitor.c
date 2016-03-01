@@ -15,6 +15,7 @@
 #include <kern/dwarf_api.h>
 #include <kern/trap.h>
 #include <kern/pmap.h>
+#include <kern/env.h>
 
 #define CMDBUF_SIZE	80	// enough for one VGA text line
 #define ANSI_COLOR_RED     "\x1b[31m"
@@ -33,6 +34,8 @@ static struct Command commands[] = {
 	{ "showmappings", "showmappings", mon_showmappings },
 	{ "dump", "dump", mon_dump },
 	{ "setpermission", "setpermission", mon_setpermission },
+	{ "continue", "continue", mon_continue },
+	{ "si", "si", mon_si },
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
 
@@ -245,6 +248,34 @@ mon_dump(int argc, char **argv, struct Trapframe *tf)
 	  return 0;
 }
 
+int mon_continue(int argc, char **argv, struct Trapframe *tf)
+{
+    if (argc!=1) goto usage;
+    if (!tf) {
+        cprintf("continue: trapframe null\n");
+        return 0;
+    }
+    tf->tf_eflags=tf->tf_eflags & ~FL_TF;
+    env_run(curenv);
+    return 0;
+    usage:
+	  cprintf("usage: setpermission <address(base 16)> <PTE_P(0|1)> <PTE_U(0|1)> <PTE_W(0|1)>\n");
+	  return 0;
+}
+
+int mon_si(int argc, char **argv, struct Trapframe *tf) {
+   if (argc!=1) goto usage;
+    if (!tf) {
+        cprintf("si: trapframe null\n");
+        return 0;
+    }
+    tf->tf_eflags = tf->tf_eflags| FL_TF;
+    env_run(curenv);
+    return 0;
+    usage:
+	  cprintf("usage: si\n");
+	  return 0;
+}
 
 
 /***** Kernel monitor command interpreter *****/

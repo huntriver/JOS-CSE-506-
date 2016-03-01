@@ -3,7 +3,7 @@
 
 #include <inc/lib.h>
 
-extern void umain(int argc, char **argv);
+// extern void umain(int argc, char **argv);
 
 const volatile struct Env *thisenv;
 const char *binaryname = "<unknown>";
