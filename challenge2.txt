@@ -1,3 +1,97 @@
 List challenge problems completed as part of the lab 2 handin, as well
+
 as the problem number.  If you worked any previous lab challenges and
+
 submitted them with this lab, list them here, along with the lab number.
+
+Challenge 2:
+1. 'showmappings' command:
+		we use the function 'pml4e_walk' in 'pmap.c' to impelement it. Use the function strtol to convert string to int.
+	
+	Usage: showmappings <lower_address(base 16)> <upper_address(base 16)>
+	
+	Example:
+		
+		K> showmappings 0x8003ff0000 0x80040040000
+		   Virtual Address             Physical Address      PTE_P           PTE_W          PTE_U
+		0x0000008003ff0000           0x0000000000211000          1               1              0
+		0x0000008003ff1000           0x0000000000212000          1               1              0
+		0x0000008003ff2000           0x0000000000213000          1               1              0
+		0x0000008003ff3000           0x0000000000214000          1               1              0
+		0x0000008003ff4000           0x0000000000215000          1               1              0
+		0x0000008003ff5000           0x0000000000216000          1               1              0
+		0x0000008003ff6000           0x0000000000217000          1               1              0
+		0x0000008003ff7000           0x0000000000218000          1               1              0
+		0x0000008003ff8000           0x0000000000219000          1               1              0
+		0x0000008003ff9000           0x000000000021a000          1               1              0
+		0x0000008003ffa000           0x000000000021b000          1               1              0
+		0x0000008003ffb000           0x000000000021c000          1               1              0
+		0x0000008003ffc000           0x000000000021d000          1               1              0
+		0x0000008003ffd000           0x000000000021e000          1               1              0
+		0x0000008003ffe000           0x000000000021f000          1               1              0
+		0x0000008003fff000           0x0000000000220000          1               1              0
+		0x0000008004000000           0x0000000000000000          1               1              0
+		0x0000008004001000           0x0000000000001000          1               1              0
+		0x0000008004002000           0x0000000000002000          1               1              0
+		0x0000008004003000           0x0000000000003000          1               1              0
+		0x0000008004004000           0x0000000000004000          1               1              
+		
+		K> showmappings 0x0 0x10000
+		   Virtual Address             Physical Address      PTE_P           PTE_W          PTE_U
+		0x0000000000000000           address not mapped
+		0x0000000000001000           address not mapped
+		0x0000000000002000           address not mapped
+		0x0000000000003000           address not mapped
+		0x0000000000004000           address not mapped
+		0x0000000000005000           address not mapped
+		0x0000000000006000           address not mapped
+		0x0000000000007000           address not mapped
+		0x0000000000008000           address not mapped
+		0x0000000000009000           address not mapped
+		0x000000000000a000           address not mapped
+		0x000000000000b000           address not mapped
+		0x000000000000c000           address not mapped
+		0x000000000000d000           address not mapped
+		0x000000000000e000           address not mapped
+		0x000000000000f000           address not mapped
+		0x0000000000010000           address not mapped
+
+
+2. 'setpermission' command:
+		Similar as above, we use the function 'pml4e_walk' in 'pmap.c' to impelement it. If the return pte is NULL, it means the address out of memory. 
+
+	Usage: setpermission <address(base 16)> <PTE_P(0|1)> <PTE_U(0|1)> <PTE_W(0|1)>
+
+	Example:
+
+		K> setpermission 0x8003ff0000 1 1 0
+		permission changed from 1 1 0 to 1 1 0
+		K> setpermission 0x8003ff0000 1 1 1
+		permission changed from 1 1 0 to 1 1 1
+		K> setpermission 0x8003ff0000 1 0 1
+		permission changed from 1 1 1 to 1 0 1
+		K> showmappings 0x8003ff0000 0x8003ff0000
+		   Virtual Address             Physical Address      PTE_P           PTE_W          PTE_U
+		0x0000008003ff0000           0x0000000000211000          1               0              1
+
+3. 'dump' command:
+		For physical address, use KADDR macro to implement it. Otherwise we use both KADDR and PADDR macro to ensure the address is valid. ALso we checked the page number of the range to ensure it is not extend across page boundaries.
+		
+	Usage: dump p|v <lower_address(base 16)> <upper_address(base 16)>
+
+	Example:
+
+		K> dump v 0x8004000000 0x8004000010
+		   Virtual Address           Content of Address
+		0x0000008004000000           0xf000ff53f000ff53
+		0x0000008004000004           0xf000e2c3f000ff53
+		0x0000008004000008           0xf000ff53f000e2c3
+		0x000000800400000c           0xf000ff53f000ff53
+		0x0000008004000010           0xf000ff53f000ff53
+		K> dump p 0x0 0x10
+		  Physical Address           Content of Address
+		0x0000000000000000           0xf000ff53f000ff53
+		0x0000000000000004           0xf000e2c3f000ff53
+		0x0000000000000008           0xf000ff53f000e2c3
+		0x000000000000000c           0xf000ff53f000ff53
+		0x0000000000000010           0xf000ff53f000ff53

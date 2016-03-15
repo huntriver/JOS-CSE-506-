@@ -23,7 +23,7 @@ extern long gdt_pd;
  * a saved trapframe and printing the current trapframe and print some
  * additional information in the latter case.
  */
-static struct Trapframe *last_tf;
+ static struct Trapframe *last_tf;
 
 /* Interrupt descriptor table.  (Must be built at run time because
  * shifted function addresses can't be represented in relocation records.)
@@ -71,10 +71,15 @@ void
 trap_init(void)
 {
 	extern struct Segdesc gdt[];
+	int i;
+	extern uint64_t entries[];
+	void entry48();
+	for (i=0;i<20;i++)
+		SETGATE(idt[i], 0, GD_KT, entries[i], i==3?3:0);
 
-	// LAB 3: Your code here.
-    idt_pd.pd_lim = sizeof(idt)-1;
-    idt_pd.pd_base = (uint64_t)idt;
+	SETGATE(idt[48], 0, GD_KT, entry48, 3);
+	idt_pd.pd_lim = sizeof(idt)-1;
+	idt_pd.pd_base = (uint64_t)idt;
 	// Per-CPU setup
 	trap_init_percpu();
 }
@@ -176,9 +181,6 @@ print_regs(struct PushRegs *regs)
 static void
 trap_dispatch(struct Trapframe *tf)
 {
-	// Handle processor exceptions.
-	// LAB 3: Your code here.
-
 	// Handle spurious interrupts
 	// The hardware sometimes raises these because of noise on the
 	// IRQ line or other reasons. We don't care.
@@ -192,13 +194,36 @@ trap_dispatch(struct Trapframe *tf)
 	// interrupt using lapic_eoi() before calling the scheduler!
 	// LAB 4: Your code here.
 
+	// Handle processor exceptions.
+	// LAB 3: Your code here.
+	switch (tf->tf_trapno)
+	{
+		case T_PGFLT:
+		page_fault_handler(tf);
+		break;
+
+		case T_BRKPT:
+		monitor(tf);
+		break;
+
+		case T_DEBUG: 
+		monitor(tf);
+		break;
+
+		case T_SYSCALL:
+		tf->tf_regs.reg_rax = syscall(tf->tf_regs.reg_rax, tf->tf_regs.reg_rdx, tf->tf_regs.reg_rcx, tf->tf_regs.reg_rbx, tf->tf_regs.reg_rdi, tf->tf_regs.reg_rsi);
+		break;
+
+		default:
 	// Unexpected trap: The user process or the kernel has a bug.
-	print_trapframe(tf);
-	if (tf->tf_cs == GD_KT)
-		panic("unhandled trap in kernel");
-	else {
-		env_destroy(curenv);
-		return;
+		print_trapframe(tf);
+		if (tf->tf_cs == GD_KT)
+			panic("unhandled trap in kernel");
+		else {
+			env_destroy(curenv);
+			return;
+
+		}
 	}
 }
 
@@ -274,7 +299,8 @@ page_fault_handler(struct Trapframe *tf)
 	// Handle kernel-mode page faults.
 
 	// LAB 3: Your code here.
-
+	if (!(tf->tf_cs&3))
+		panic ("kernel mode pauge fault happened!");
 	// We've already handled kernel-mode exceptions, so if we get here,
 	// the page fault happened in user mode.
 
