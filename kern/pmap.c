@@ -777,6 +777,14 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// Hint: The staff solution uses boot_map_region.
 	//
 	// Your code here:
+	if (base+ROUNDUP(size, PGSIZE)>MMIOLIM || ROUNDUP(size, PGSIZE)<0)
+	{
+		panic("mmio_map_region: out of memory!");
+	}
+	boot_map_region(boot_pml4e, base, ROUNDUP(size, PGSIZE), pa, PTE_PCD|PTE_PWT|PTE_W);
+	base+=ROUNDUP(size, PGSIZE);
+	return (void *)MMIOBASE;
+
 	panic("mmio_map_region not implemented");
 }
 
