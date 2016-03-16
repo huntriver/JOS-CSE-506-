@@ -332,7 +332,6 @@ x64_vm_init(void)
 	
 	// Initialize the SMP-related parts of the memory map
 	mem_init_mp();
-	
 	check_boot_pml4e(boot_pml4e);
 
 	//////////////////////////////////////////////////////////////////////
@@ -340,7 +339,6 @@ x64_vm_init(void)
 	pdpe_t *pdpe = KADDR(PTE_ADDR(pml4e[1]));
 	pde_t *pgdir = KADDR(PTE_ADDR(pdpe[0]));
 	lcr3(boot_cr3);
-
 	check_page_free_list(1);
 	check_page_alloc();
 	page_check();
@@ -371,6 +369,12 @@ mem_init_mp(void)
 	//
 	// LAB 4: Your code here:
 
+	int i;
+	for (i=0;i<NCPU;i++)
+	{
+		uintptr_t kstacktop_i = KSTACKTOP - i * (KSTKSIZE + KSTKGAP);
+		boot_map_region(boot_pml4e,kstacktop_i- KSTKSIZE,KSTKSIZE,PADDR(percpu_kstacks[i]),PTE_W|PTE_P);
+	}
 }
 
 // --------------------------------------------------------------
@@ -417,6 +421,11 @@ page_init(void)
 	for (i = 0; i < npages; i++) {
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = NULL;
+		if (i == MPENTRY_PADDR / PGSIZE)
+		{
+			 pages[i].pp_ref = 1;
+			 continue;
+		}
 		if(last)
 			last->pp_link = &pages[i];
 		else
@@ -430,7 +439,7 @@ page_init(void)
 
 	for (i=IOPHYSMEM/PGSIZE;i<PADDR(boot_alloc(0))/PGSIZE;i++)
 		pages[i].pp_link=NULL;
-	cprintf("finished page init\n");   
+	cprintf("finished page init\n");     
 }
 
 //
@@ -777,15 +786,18 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// Hint: The staff solution uses boot_map_region.
 	//
 	// Your code here:
+	void *ret = (void*) base; 
 	if (base+ROUNDUP(size, PGSIZE)>MMIOLIM || ROUNDUP(size, PGSIZE)<0)
 	{
 		panic("mmio_map_region: out of memory!");
 	}
-	boot_map_region(boot_pml4e, base, ROUNDUP(size, PGSIZE), pa, PTE_PCD|PTE_PWT|PTE_W);
+	boot_map_region(boot_pml4e, base, ROUNDUP(size, PGSIZE), pa, PTE_PCD|PTE_PWT|PTE_W|PTE_P);
 	base+=ROUNDUP(size, PGSIZE);
-	return (void *)MMIOBASE;
+	return ret;
 
 	panic("mmio_map_region not implemented");
+
+
 }
 
 static uintptr_t user_mem_check_addr;
