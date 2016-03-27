@@ -76,7 +76,8 @@ trap_init(void)
 	void entry48();
 	for (i=0;i<20;i++)
 		SETGATE(idt[i], 0, GD_KT, entries[i], i==3?3:0);
-
+	// for (i=32;i<=47;i++)
+	// 	SETGATE(idt[i], 0, GD_KT, entries[i], 0);
 	SETGATE(idt[48], 0, GD_KT, entry48, 3);
 	idt_pd.pd_lim = sizeof(idt)-1;
 	idt_pd.pd_base = (uint64_t)idt;
@@ -214,6 +215,11 @@ trap_dispatch(struct Trapframe *tf)
 		tf->tf_regs.reg_rax = syscall(tf->tf_regs.reg_rax, tf->tf_regs.reg_rdx, tf->tf_regs.reg_rcx, tf->tf_regs.reg_rbx, tf->tf_regs.reg_rdi, tf->tf_regs.reg_rsi);
 		break;
 
+		case IRQ_OFFSET+IRQ_TIMER:
+		lapic_eoi();
+		sched_yield();
+		break;
+		
 		default:
 	// Unexpected trap: The user process or the kernel has a bug.
 		print_trapframe(tf);
@@ -308,18 +314,18 @@ page_fault_handler(struct Trapframe *tf)
 	cprintf("123 %d\n",curenv->env_pgfault_upcall);
 	
 	if (curenv->env_pgfault_upcall){
-        struct UTrapframe *utf;
-        utf = (struct UTrapframe *)( (tf->tf_rsp>=UXSTACKTOP-PGSIZE && tf->tf_rsp<UXSTACKTOP)?tf->tf_rsp-sizeof(struct UTrapframe)-8:UXSTACKTOP-sizeof(struct UTrapframe) );
-        user_mem_assert(curenv, (void*)utf, sizeof(struct UTrapframe),  PTE_P|PTE_U|PTE_W);
-        utf->utf_eflags = tf->tf_eflags;
-        utf->utf_rip = tf->tf_rip;
-        utf->utf_err = tf->tf_err;
-        utf->utf_fault_va = fault_va;
-        utf->utf_regs = tf->tf_regs;
-        utf->utf_rsp = tf->tf_rsp;
-        curenv->env_tf.tf_rip = (uintptr_t)curenv->env_pgfault_upcall;
-        curenv->env_tf.tf_rsp = (uintptr_t)utf;
-        env_run(curenv);
+		struct UTrapframe *utf;
+		utf = (struct UTrapframe *)( (tf->tf_rsp>=UXSTACKTOP-PGSIZE && tf->tf_rsp<UXSTACKTOP)?tf->tf_rsp-sizeof(struct UTrapframe)-8:UXSTACKTOP-sizeof(struct UTrapframe) );
+		user_mem_assert(curenv, (void*)utf, sizeof(struct UTrapframe),  PTE_P|PTE_U|PTE_W);
+		utf->utf_eflags = tf->tf_eflags;
+		utf->utf_rip = tf->tf_rip;
+		utf->utf_err = tf->tf_err;
+		utf->utf_fault_va = fault_va;
+		utf->utf_regs = tf->tf_regs;
+		utf->utf_rsp = tf->tf_rsp;
+		curenv->env_tf.tf_rip = (uintptr_t)curenv->env_pgfault_upcall;
+		curenv->env_tf.tf_rsp = (uintptr_t)utf;
+		env_run(curenv);
 		return;
 	}
 	// Destroy the environment that caused the fault.

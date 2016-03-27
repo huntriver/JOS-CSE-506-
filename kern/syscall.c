@@ -242,7 +242,6 @@ if((uintptr_t)srcva >= UTOP || ((uintptr_t)srcva)%PGSIZE!=0 || (uintptr_t)dstva 
 	struct PageInfo *p = NULL;
 	pte_t *pte;	
 	p = page_lookup(env_src->env_pml4e, (void *)srcva, &pte);
-	cprintf("where?\n");
 	if(p == NULL)
 	 return -E_NO_MEM;
 
@@ -253,7 +252,6 @@ if((uintptr_t)srcva >= UTOP || ((uintptr_t)srcva)%PGSIZE!=0 || (uintptr_t)dstva 
 
 	if(page_insert(env_dst->env_pml4e, p, dstva,perm) < 0)
 	  return -E_NO_MEM;
-	cprintf("why!\n");
 	 return 0;
 	panic("sys_page_map not implemented");
 }
