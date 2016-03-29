@@ -79,8 +79,66 @@ trap_init(void)
 	// for (i=32;i<=47;i++)
 	// 	SETGATE(idt[i], 0, GD_KT, entries[i], 0);
 	SETGATE(idt[48], 0, GD_KT, entry48, 3);
-	idt_pd.pd_lim = sizeof(idt)-1;
-	idt_pd.pd_base = (uint64_t)idt;
+	
+
+	//for (i = 0; i < 16; ++i)
+//		SETGATE(idt[IRQ_OFFSET+i], 0, GD_KT, entries[IRQ_OFFSET+i], 0);
+
+void entry32();
+void entry33();
+void entry34();
+void entry35();
+void entry36();
+void entry37();
+void entry38();
+void entry39();
+void entry40();
+void entry41();
+void entry42();
+void entry43();
+void entry44();
+void entry45();
+void entry46();
+void entry47();
+
+
+
+ 	SETGATE(idt[32], 0, GD_KT, entry32, 0);
+    SETGATE(idt[33], 0, GD_KT, entry33, 0);
+    SETGATE(idt[34], 0, GD_KT, entry34, 0);
+    SETGATE(idt[35], 0, GD_KT, entry35, 0);
+    SETGATE(idt[36], 0, GD_KT, entry36, 0);
+    SETGATE(idt[37], 0, GD_KT, entry37, 0);
+    SETGATE(idt[38], 0, GD_KT, entry38, 0);
+    SETGATE(idt[39], 0, GD_KT, entry39, 0);
+    SETGATE(idt[40], 0, GD_KT, entry40, 0);
+    SETGATE(idt[41], 0, GD_KT, entry41, 0);
+    SETGATE(idt[42], 0, GD_KT, entry42, 0);
+    SETGATE(idt[43], 0, GD_KT, entry43, 0);
+    SETGATE(idt[44], 0, GD_KT, entry44, 0);
+    SETGATE(idt[45], 0, GD_KT, entry45, 0);
+    SETGATE(idt[46], 0, GD_KT, entry46, 0);
+    SETGATE(idt[47], 0, GD_KT, entry47, 0);
+
+//  SETGATE (idt[IRQ_OFFSET + 0], 0, GD_KT, routine_irq0, 0);
+//  SETGATE (idt[IRQ_OFFSET + 1], 0, GD_KT, routine_irq1, 0);
+//  SETGATE (idt[IRQ_OFFSET + 2], 0, GD_KT, routine_irq2, 0);
+//  SETGATE (idt[IRQ_OFFSET + 3], 0, GD_KT, routine_irq3, 0);
+//  SETGATE (idt[IRQ_OFFSET + 4], 0, GD_KT, routine_irq4, 0);
+//  SETGATE (idt[IRQ_OFFSET + 5], 0, GD_KT, routine_irq5, 0);
+//  SETGATE (idt[IRQ_OFFSET + 6], 0, GD_KT, routine_irq6, 0);
+//  SETGATE (idt[IRQ_OFFSET + 7], 0, GD_KT, routine_irq7, 0);
+//  SETGATE (idt[IRQ_OFFSET + 8], 0, GD_KT, routine_irq8, 0);
+//  SETGATE (idt[IRQ_OFFSET + 9], 0, GD_KT, routine_irq9, 0);
+//  SETGATE (idt[IRQ_OFFSET + 10], 0, GD_KT, routine_irq10, 0);
+//  SETGATE (idt[IRQ_OFFSET + 11], 0, GD_KT, routine_irq11, 0);
+//  SETGATE (idt[IRQ_OFFSET + 12], 0, GD_KT, routine_irq12, 0);
+//  SETGATE (idt[IRQ_OFFSET + 13], 0, GD_KT, routine_irq13, 0);
+//  SETGATE (idt[IRQ_OFFSET + 14], 0, GD_KT, routine_irq14, 0);
+//  SETGATE (idt[IRQ_OFFSET + 15], 0, GD_KT, routine_irq15, 0);
+
+idt_pd.pd_lim = sizeof(idt)-1;
+    idt_pd.pd_base = (uint64_t)idt;
 	// Per-CPU setup
 	trap_init_percpu();
 }
@@ -114,6 +172,8 @@ trap_init_percpu(void)
 
 	// Setup a TSS so that we get the right stack
 	// when we trap to the kernel.
+
+
 	int id=cpunum();
 	thiscpu->cpu_ts.ts_esp0 = (uintptr_t)percpu_kstacks[id]+KSTKSIZE;
 	// Initialize the TSS slot of the gdt.
@@ -185,12 +245,14 @@ trap_dispatch(struct Trapframe *tf)
 	// Handle spurious interrupts
 	// The hardware sometimes raises these because of noise on the
 	// IRQ line or other reasons. We don't care.
+
 	if (tf->tf_trapno == IRQ_OFFSET + IRQ_SPURIOUS) {
 		cprintf("Spurious interrupt on irq 7\n");
 		print_trapframe(tf);
 		return;
 	}
 
+ 	
 	// Handle clock interrupts. Don't forget to acknowledge the
 	// interrupt using lapic_eoi() before calling the scheduler!
 	// LAB 4: Your code here.
