@@ -99,6 +99,12 @@ sys_env_set_pgfault_upcall(envid_t envid, void *upcall)
 	return syscall(SYS_env_set_pgfault_upcall, 1, envid, (uint64_t) upcall, 0, 0, 0);
 }
 
+void
+sys_set_priority(envid_t envid, int priority)
+{
+	syscall(SYS_set_priority,1,envid,priority,0,0,0);
+}
+
 int
 sys_ipc_try_send(envid_t envid, uint64_t value, void *srcva, int perm)
 {

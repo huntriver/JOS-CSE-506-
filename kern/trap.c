@@ -372,9 +372,6 @@ page_fault_handler(struct Trapframe *tf)
 		panic ("kernel mode pauge fault happened!");
 	// LAB 4: Your code here.
 
-	cprintf("123id %d\n",curenv->env_id);
-	cprintf("123 %d\n",curenv->env_pgfault_upcall);
-	
 	if (curenv->env_pgfault_upcall){
 		struct UTrapframe *utf;
 		utf = (struct UTrapframe *)( (tf->tf_rsp>=UXSTACKTOP-PGSIZE && tf->tf_rsp<UXSTACKTOP)?tf->tf_rsp-sizeof(struct UTrapframe)-8:UXSTACKTOP-sizeof(struct UTrapframe) );

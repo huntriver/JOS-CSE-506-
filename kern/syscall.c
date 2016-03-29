@@ -142,7 +142,6 @@ sys_env_set_pgfault_upcall(envid_t envid, void *func)
 		return r;
 	}
 	env->env_pgfault_upcall=func;
-	cprintf("222 id %d\n",envid);
 	return 0;
 	panic("sys_env_set_pgfault_upcall not implemented");
 }
@@ -346,7 +345,14 @@ sys_ipc_recv(void *dstva)
 }
 
 
-
+static void 
+sys_set_priority(envid_t envid,int priority){
+	struct Env *env;
+	if (envid2env(envid,&env,1)<0)
+		panic("sys_set_priority: envid2env()\n");
+	env->env_priority=priority;
+	return;
+}
 
 // Dispatches to the correct kernel function, passing the arguments.
 int64_t
@@ -366,6 +372,9 @@ syscall(uint64_t syscallno, uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4, 
 			return sys_env_destroy((envid_t)a1);
 		case SYS_cputs:
 			sys_cputs((const char *)a1, (size_t)a2);
+			return 0;
+		case SYS_set_priority:
+			sys_set_priority((envid_t)a1,(int)a2);
 			return 0;
 		case SYS_exofork:
 			return sys_exofork();
