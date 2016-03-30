@@ -81,6 +81,28 @@ duppage(envid_t envid, unsigned pn)
 
 }
 
+
+static int
+new_duppage(envid_t envid, unsigned pn,int flag)
+{
+	
+	if (!(uvpt[pn] & PTE_W) && !(uvpt[pn] & PTE_COW) && !flag) {
+		if (sys_page_map(0, (void*)((uint64_t)(pn * PGSIZE)), envid, (void*)((uint64_t)(pn * PGSIZE)), PTE_U | PTE_P)< 0) 
+			panic("duppage:sys_page_map error\n");
+	}
+	else {
+		if (sys_page_map(0, (void*)((uint64_t)(pn * PGSIZE)), envid, (void*)((uint64_t)(pn * PGSIZE)), PTE_U | PTE_P | PTE_COW)< 0) 
+			panic("duppage:sys_page_map error\n");
+		if (sys_page_map(0, (void*)((uint64_t)(pn * PGSIZE)), 0, (void*)((uint64_t)(pn * PGSIZE)), PTE_U | PTE_P | PTE_COW)< 0) 
+			panic("duppage:sys_page_map error\n");
+	}
+	return 0;	   	
+
+}
+
+
+
+
 //
 // User-level fork with copy-on-write.
 // Set up our page fault handler appropriately.
@@ -147,9 +169,57 @@ fork(void)
 }
 
 // Challenge!
-int
+envid_t
 sfork(void)
 {
-	panic("sfork not implemented");
-	return -E_INVAL;
+
+	
+	int envid;  
+	extern unsigned char end[];      
+	set_pgfault_handler(pgfault);
+	
+
+	if ((envid=sys_exofork())<0)
+		panic("fork: sys_exofork error!\n"); 
+
+	if(envid>0){
+		
+		
+		uintptr_t i;
+		int flag=1;
+
+		for (i = 0; i < (uintptr_t)end/*USTACKTOP-PGSIZE*/; i += PGSIZE) ;
+	
+
+
+		//new_duppage(envid, PPN(USTACKTOP-PGSIZE),flag);
+		i-=PGSIZE;
+    for (;i>=0; i -= PGSIZE) 
+		{
+			cprintf("23\n");
+			if(!(uvpd[VPD(i)] & PTE_P) || !(uvpt[VPN(i)] & PTE_P) || !(uvpt[VPN(i)] & PTE_U))
+				flag=0;
+			else
+				new_duppage(envid, VPN(i),flag); 
+
+		}
+
+		if (sys_page_alloc(envid,(void*)UXSTACKTOP-PGSIZE, PTE_U|PTE_W|PTE_P)<0)
+			panic("fork: sys_page_alloc error!\n");
+cprintf("123\n");
+		//new_duppage(envid, PPN(USTACKTOP-PGSIZE),flag);
+		extern void _pgfault_upcall(void);
+		if (sys_env_set_pgfault_upcall(envid, _pgfault_upcall)<0)
+			panic("fork: sys_env_set_status error!\n");
+		if (sys_env_set_status(envid, ENV_RUNNABLE)<0)
+			panic("fork: sys_env_set_status error!\n");
+
+		return envid;
+	}
+	else
+	{
+		thisenv = &envs[ENVX(sys_getenvid())];
+		return 0;
+	}
+
 }
