@@ -22,58 +22,15 @@
 int32_t
 ipc_recv(envid_t *from_env_store, void *pg, int *perm_store)
 {
-	// LAB 4: Your code here.
-	// if(pg == NULL){
-	// 	pg = (void *)(UTOP);
-	// }
-
-	// int result = sys_ipc_recv(pg);
-	// if(result == 0){	
-	// 	if(from_env_store != NULL)
-	// 		*from_env_store = thisenv->env_ipc_from;
-	// 	if(perm_store != NULL)
-	// 		*perm_store = thisenv->env_ipc_perm;
-		
-	// 	return thisenv->env_ipc_value;
-	// }
-	// else{
-	// 	if(from_env_store)
-	// 		*from_env_store = 0;
-	// 	if(perm_store)
-	// 		*perm_store = 0;
-
-	// 	return result;
-	// }
-	// //panic("ipc_recv not implemented");
-	// return 0;
-	if(pg == NULL)
-	  pg = (void *)(UTOP); // We always check above and below UTOP
-
-	 int retval = sys_ipc_recv(pg);
-
-	 if(retval == 0)
-	 {	
-	    if(from_env_store != NULL)
-               *from_env_store = thisenv->env_ipc_from;
-
-	    if(perm_store != NULL)
-               *perm_store = thisenv->env_ipc_perm;
-
-	   return thisenv->env_ipc_value;
-
-	 }
-	 else
-	 {
-	      if(from_env_store)
-	         *from_env_store = 0;
-	      
-	      if(perm_store)
-	       *perm_store = 0;
-	       
-	       return retval;
-	 }
+	//LAB 4: Your code here.
+	if (!pg) pg=(void*)-1;
+	int res=sys_ipc_recv(pg);
 	
-	panic("problem in ipc_recv lib/ipc.c");
+	if (from_env_store) *from_env_store=res==0?thisenv->env_ipc_from:0;
+	if (perm_store) *perm_store=res==0?thisenv->env_ipc_perm:0;
+	return res!=0?res:thisenv->env_ipc_value;
+	
+
 }
 
 // Send 'val' (and 'pg' with 'perm', if 'pg' is nonnull) to 'toenv'.
@@ -88,19 +45,14 @@ void
 ipc_send(envid_t to_env, uint32_t val, void *pg, int perm)
 {
 	// LAB 4: Your code here.
-	if(pg == NULL)
-	   pg = (void *)(UTOP);
-
-	int result;
-	while(1)
-	{
-	   result = sys_ipc_try_send(to_env, val, pg, perm);
-	   if(result == 0)
-	      break;
-	   sys_yield();  
+	if (!pg) pg=(void*)-1;
+	int res;
+	while ((res=sys_ipc_try_send(to_env, val, pg, perm))<0){
+		if(res!=-E_IPC_NOT_RECV)
+			panic("ipc_send:error other than -E_IPC_NOT_RECV\n");
+		sys_yield();  
 	}
-	return;
-	panic("ipc_send not implemented");
+	//panic("ipc_send not implemented");
 }
 
 // Find the first environment of the given type.  We'll use this to
@@ -113,5 +65,5 @@ ipc_find_env(enum EnvType type)
 	for (i = 0; i < NENV; i++)
 		if (envs[i].env_type == type)
 			return envs[i].env_id;
-	return 0;
-}
+		return 0;
+	}
