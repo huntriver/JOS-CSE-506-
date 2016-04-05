@@ -16,6 +16,7 @@ LIB_SRCFILES :=		$(LIB_SRCFILES) \
 			lib/fork.c \
 			lib/ipc.c
 
+
 LIB_SRCFILES :=		$(LIB_SRCFILES) \
 			lib/args.c \
 			lib/fd.c \
@@ -27,6 +28,7 @@ LIB_SRCFILES :=		$(LIB_SRCFILES) \
 LIB_SRCFILES :=		$(LIB_SRCFILES) \
 			lib/pipe.c \
 			lib/wait.c
+
 
 LIB_OBJFILES := $(patsubst lib/%.c, $(OBJDIR)/lib/%.o, $(LIB_SRCFILES))
 LIB_OBJFILES := $(patsubst lib/%.S, $(OBJDIR)/lib/%.o, $(LIB_OBJFILES))

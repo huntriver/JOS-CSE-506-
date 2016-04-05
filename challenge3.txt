@@ -1,3 +1,21 @@
 List challenge problems completed as part of the lab 3 handin, as well
+
 as the problem number.  If you worked any previous lab challenges and
+
 submitted them with this lab, list them here, along with the lab number.
+
+Challenge 1:
+Instead of defining a lot of entries in trap.c, we define a function array entries in trapentry.S. Change the two macro TRAPHANDLER_NOEC and TRAPHANDLER to save a 64 bit function entry.  
+Thus, in trap.c we can easily install all handler function by using a for loop.
+
+
+Challenge 2:
+1. 'si' command:
+	What we did here is to set the Trap flag(bit 8) of Eflags. Set it to 1 to make it allow single instruction otherwise diable it. Also when FL_TF  is set to 1, there will be a T_DEBUG interrupts, which is caught by trap_dispatch.
+
+	Example:
+	  Run make qemu, JOS will run bearkpoint.c
+	  Run si command and look at the rip register in the trapframe and make sure it is the same instruction order in breakpoint.asm
+
+2. 'continue' command:
+	Similar to above, just set Trap flag to 0 to disable single instruction.

@@ -15,6 +15,7 @@ cputchar(int ch)
 int
 getchar(void)
 {
+
 	unsigned char c;
 	int r;
 

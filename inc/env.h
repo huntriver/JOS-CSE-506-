@@ -43,6 +43,7 @@ enum {
 enum EnvType {
 	ENV_TYPE_USER = 0,
 	ENV_TYPE_FS,		// File system server
+
 };
 
 struct Env {
@@ -69,6 +70,8 @@ struct Env {
 	envid_t env_ipc_from;		// envid of the sender
 	int env_ipc_perm;		// Perm of page mapping received
     uint8_t *elf;
+    //lab4 challenge
+    int env_priority;
 };
 
 #endif // !JOS_INC_ENV_H

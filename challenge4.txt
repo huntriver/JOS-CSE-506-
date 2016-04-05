@@ -1,3 +1,58 @@
 List challenge problems completed as part of the lab 4 handin, as well
+
 as the problem number.  If you worked any previous lab challenges and
+
 submitted them with this lab, list them here, along with the lab number.
+
+Challenge 2:
+	We add a new field (env_priority) to the Env Structure.(The max env_priority means "first run"). Modify sched_yiled function in order to get the highest priority runnable environment. 
+	Also we need a syscall "sys_set_priority" for users to set the priority of an environment. We need to modify inc/syscall.h, kern/syscall.c, lib/syscall.c, inc/lib.h to make the new syscall work.
+	We test this by the following user program:
+		
+		int i;
+		sys_set_priority(0,500);
+		if ((i=fork())!=0)
+		{
+			sys_set_priority(i,100);
+			if ((i=fork())!=0)
+			{
+				sys_set_priority(i,200);	
+				if ((i=fork())!=0)
+				{
+					sys_set_priority(i,300);
+					if ((i=fork())!=0)
+					{
+						sys_set_priority(i,400);	
+					}	
+				}
+			}	
+		}
+		struct Env *env=(struct Env *) envs + ENVX (sys_getenvid ());
+		cprintf("%04x: On the environment with priority %d\n",sys_getenvid(),env->env_priority);
+
+	We create 4 child process with priority in ascending order, and the result is following:
+
+		[00000000] new env 00001000
+		[00001000] new env 00001001
+		[00001000] new env 00001002
+		[00001000] new env 00001003
+		[00001000] new env 00001004
+		1000: On the environment with priority 500
+		[00001000] exiting gracefully
+		[00001000] free env 00001000
+		1004: On the environment with priority 400
+		[00001004] exiting gracefully
+		[00001004] free env 00001004
+		1003: On the environment with priority 300
+		[00001003] exiting gracefully
+		[00001003] free env 00001003
+		1002: On the environment with priority 200
+		[00001002] exiting gracefully
+		[00001002] free env 00001002
+		1001: On the environment with priority 100
+		[00001001] exiting gracefully
+		[00001001] free env 00001001
+		No runnable environments in the system!
+
+	which is what we expect.
+

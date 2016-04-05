@@ -18,6 +18,7 @@ enum {
 	E_IPC_NOT_RECV	= 8,	// Attempt to send to env that is not recving
 	E_EOF		= 9,	// Unexpected end of file
 
+
 	// File system error codes -- only seen in user-level
 	E_NO_DISK	= 10,	// No free space left on disk
 	E_MAX_OPEN	= 11,	// Too many files are open
