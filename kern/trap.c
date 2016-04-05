@@ -140,7 +140,7 @@ void entry47();
 //  SETGATE (idt[IRQ_OFFSET + 15], 0, GD_KT, routine_irq15, 0);
 
 idt_pd.pd_lim = sizeof(idt)-1;
->>>>>>> lab4
+
     idt_pd.pd_base = (uint64_t)idt;
 	// Per-CPU setup
 	trap_init_percpu();

@@ -574,14 +574,7 @@ page_decref(struct PageInfo* pp)
 //
 
 pte_t *
-<<<<<<< HEAD
-pml4e_walk(pml4e_t *pml4e, const void *va, int create)
-{
-	return NULL;
-}
 
-
-=======
 pml4e_walk(pml4e_t *pml4e, const void *va, int create){
 	pte_t *pte;
 	pml4e_t *pdpe;
@@ -610,7 +603,7 @@ pml4e_walk(pml4e_t *pml4e, const void *va, int create){
 	return pte;
 }
 
->>>>>>> lab4
+
 // Given a pdpe i.e page directory pointer pdpe_walk returns the pointer to page table entry
 // The programming logic in this function is similar to pml4e_walk.
 // It calls the pgdir_walk which returns the page_table entry pointer.
