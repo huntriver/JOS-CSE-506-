@@ -525,11 +525,11 @@ page_free(struct PageInfo *pp)
 
          //if(pp->pp_link != NULL || pp->pp_ref != 0)
            //panic("page_free: Page is still in use");
-	// if (pp->pp_ref != 0 || pp->pp_link != NULL){
-	// 	cprintf("pp_ref %d\n",pp->pp_ref);//test
-	// 	panic("pp_ref is nonzero or pp_link is not NULL\n");
-	// 	return;
-	// }
+	if (pp->pp_ref != 0 || pp->pp_link != NULL){
+		cprintf("pp_ref %d\n",pp->pp_ref);//test
+		panic("pp_ref is nonzero or pp_link is not NULL\n");
+		return;
+	}
 	pp->pp_link = page_free_list;
 	page_free_list = pp;
 }         
@@ -723,8 +723,14 @@ page_insert(pml4e_t *pml4e, struct PageInfo *pp, void *va, int perm)
 	if(ad == NULL){//page table could not be allocated
 		return -E_NO_MEM;
 	}
-	struct PageInfo *phy_pageInfo = page_lookup(pml4e, va, NULL);
-	if( phy_pageInfo != NULL ){
+	if (*ad & PTE_P){
+		if (page2pa(pp)==PTE_ADDR(*ad))
+		{
+			*ad = page2pa(pp) | perm | PTE_P;
+			 tlb_invalidate(pml4e, va);
+			 return 0;
+		}
+
 		page_remove(pml4e, va);
 	}
 	*ad = page2pa(pp) | perm | PTE_P;
