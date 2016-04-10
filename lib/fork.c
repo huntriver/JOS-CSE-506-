@@ -71,7 +71,11 @@ static int
 duppage(envid_t envid, unsigned pn)
 {
 
-	
+	if (uvpt[pn] & PTE_SHARE){
+		if (sys_page_map (0, (void*) ((uint64_t)pn * PGSIZE), envid, (void*) ((uint64_t)pn * PGSIZE), uvpt[pn] & PTE_SYSCALL)<0)
+			panic("duppage:sys_page_map error\n");	
+	}
+	else
 	if (!(uvpt[pn] & PTE_W) && !(uvpt[pn] & PTE_COW)) {
 		if (sys_page_map(0, (void*)((uint64_t)(pn * PGSIZE)), envid, (void*)((uint64_t)(pn * PGSIZE)), PTE_U | PTE_P)< 0) 
 			panic("duppage:sys_page_map error\n");
@@ -132,7 +136,7 @@ fork(void)
 
 	
 	int envid;  
-	extern unsigned char end[];      
+	//extern unsigned char end[];      
 	set_pgfault_handler(pgfault);
 
 
@@ -143,9 +147,17 @@ fork(void)
 		
 		
 		uintptr_t i;
-    for (i = 0; i < (uintptr_t)end/*USTACKTOP-PGSIZE*/; i += PGSIZE) 
+    for (i = UTEXT; i < (uintptr_t)USTACKTOP-PGSIZE/*USTACKTOP-PGSIZE*/; i += PGSIZE) 
 		{
 			
+
+               if(!(uvpml4e[VPML4E(i)]))
+		 continue;
+		
+		if(!(uvpde[VPDPE(i)]))
+	          continue;
+	
+
 			if(!(uvpd[VPD(i)] & PTE_P))
 				continue;
 			if(!(uvpt[VPN(i)] & PTE_P))
@@ -158,7 +170,7 @@ fork(void)
 		if (sys_page_alloc(envid,(void*)UXSTACKTOP-PGSIZE, PTE_U|PTE_W|PTE_P)<0)
 			panic("fork: sys_page_alloc error!\n");
 
-		duppage(envid, PPN(USTACKTOP-PGSIZE));
+		duppage(envid, VPN(USTACKTOP-PGSIZE));
 		extern void _pgfault_upcall(void);
 		if (sys_env_set_pgfault_upcall(envid, _pgfault_upcall)<0)
 			panic("fork: sys_env_set_status error!\n");
