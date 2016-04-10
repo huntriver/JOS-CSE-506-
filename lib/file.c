@@ -69,6 +69,21 @@ open(const char *path, int mode)
 	// file descriptor.
 
 	// LAB 5: Your code here
+
+	struct Fd *fd;
+	int ret;
+	if (strlen(path)>=MAXPATHLEN)
+		return -E_BAD_PATH;
+	if ((ret=fd_alloc(&fd))<0)
+		return ret;
+	fsipcbuf.open.req_omode = mode;
+	strcpy (fsipcbuf.open.req_path, path);
+	if ((ret=fsipc (FSREQ_OPEN, (void *) fd)) < 0)
+	{
+		fd_close(fd,0);
+		return ret;
+	}
+	return fd2num (fd);
 	panic ("open not implemented");
 }
 
