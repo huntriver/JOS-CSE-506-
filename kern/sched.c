@@ -29,59 +29,59 @@ sched_yield(void)
 	// below to halt the cpu.
 
 	// LAB 4: Your code here.
+	//cprintf("here\n");
 
-
-	int i=curenv?(ENVX(curenv->env_id)+1)%NENV:0;
-	int j;
-	// while (true) {
-	// 	if(envs[i].env_status == ENV_RUNNABLE)  
-	// 	{  
-	// 		env_run(&envs[i]);  
-	// 		return;  
-	// 	}
-	// 	i=(i+1)%NENV;
-	// 	if (i==j)
-	// 		break;
-	// }
-	int max=-1;
-	int maxid=-1;
-	for (j=0;j<NENV;j++){
+	// int i=curenv?(ENVX(curenv->env_id)+1)%NENV:0;
+	// int j;
+	// // while (true) {
+	// // 	if(envs[i].env_status == ENV_RUNNABLE)  
+	// // 	{  
+	// // 		env_run(&envs[i]);  
+	// // 		return;  
+	// // 	}
+	// // 	i=(i+1)%NENV;
+	// // 	if (i==j)
+	// // 		break;
+	// // }
+	// int max=-1;
+	// int maxid=-1;
+	// for (j=0;j<NENV;j++){
 		
-		if(envs[i].env_status == ENV_RUNNABLE)
-			if (envs[i].env_priority>max){
-				max=envs[i].env_priority;
-				maxid=i;
-			}
-		i=(i+1)%NENV;
-	}
+	// 	if(envs[i].env_status == ENV_RUNNABLE)
+	// 		if (envs[i].env_priority>max){
+	// 			max=envs[i].env_priority;
+	// 			maxid=i;
+	// 		}
+	// 	i=(i+1)%NENV;
+	// }
 
-	if (max>=0)
-		if (!(curenv && curenv->env_status == ENV_RUNNING && curenv->env_priority>max))
-			env_run(&envs[maxid]);
+	// if (max>=0)
+	// 	if (!(curenv && curenv->env_status == ENV_RUNNING && curenv->env_priority>max))
+	// 		env_run(&envs[maxid]);
 	
     
-      if (curenv && curenv->env_status == ENV_RUNNING) {
-       env_run(curenv);
-    }
-
-
-
-	// int now, i;
- //    if (curenv) {
- //        now = (ENVX(curenv->env_id) + 1)% NENV;
- //    } else {
- //        now = 0;
- //    }
- //    for (i = 0; i < NENV; i++, now = (now + 1) % NENV) {
- //        if (now == 1) cprintf("%d  %d\n",ENV_RUNNABLE,envs[now].env_status);
- //        if (envs[now].env_status == ENV_RUNNABLE) {
- //            env_run(&envs[now]);
- //        }
- //    }
- //    if (curenv && curenv->env_status == ENV_RUNNING) {
+ //      if (curenv && curenv->env_status == ENV_RUNNING) {
  //       env_run(curenv);
  //    }
 
+
+	int i=curenv?ENVX(thiscpu->cpu_env->env_id):0;
+	int j=i;
+	while (true) {
+		if(envs[i].env_status == ENV_RUNNABLE)  
+		{  
+			env_run(&envs[i]);  
+			return;  
+		}
+		i=(i+1)%NENV;
+		if (i==j)
+			break;
+	}
+	if (thiscpu->cpu_env->env_status==ENV_RUNNING)
+	{
+		env_run(thiscpu->cpu_env);
+		return;
+	}
 
 
 	// sched_halt never returns
