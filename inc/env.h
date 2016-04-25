@@ -44,13 +44,11 @@ enum {
 enum EnvType {
 	ENV_TYPE_USER = 0,
 	ENV_TYPE_FS,		// File system server
-<<<<<<< HEAD
+
 	ENV_TYPE_NS,		// Network server
 	ENV_TYPE_GUEST,     // A VMM guest OS
 	ENV_TYPE_IDLE,
-=======
 
->>>>>>> lab5
 };
 
 struct Env {
