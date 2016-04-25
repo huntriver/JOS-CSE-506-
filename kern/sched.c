@@ -7,12 +7,29 @@
 
 void sched_halt(void);
 
+
+#ifndef VMM_GUEST
+#include <vmm/vmx.h>
+static int
+vmxon() {
+	int r;
+	if(!thiscpu->is_vmx_root) {
+		r = vmx_init_vmxon();
+		if(r < 0) {
+			cprintf("Error executing VMXON: %e\n", r);
+			return r;
+		}
+		cprintf("VMXON\n");
+	}
+	return 0;
+}
+#endif
+
 // Choose a user environment to run and run it.
 void
 sched_yield(void)
 {
 	struct Env *idle;
-
 	// Implement simple round-robin scheduling.
 	//
 	// Search through 'envs' for an ENV_RUNNABLE environment in
@@ -29,6 +46,7 @@ sched_yield(void)
 	// below to halt the cpu.
 
 	// LAB 4: Your code here.
+
 	//cprintf("here\n");
 
 	// int i=curenv?(ENVX(curenv->env_id)+1)%NENV:0;
@@ -84,9 +102,12 @@ sched_yield(void)
 	}
 
 
+
 	// sched_halt never returns
 	sched_halt();
 }
+
+
 
 // Halt this CPU when there is nothing to do. Wait until the
 // timer interrupt wakes it up. This function never returns.

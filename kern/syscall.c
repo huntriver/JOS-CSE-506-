@@ -11,6 +11,11 @@
 #include <kern/syscall.h>
 #include <kern/console.h>
 #include <kern/sched.h>
+#include <kern/time.h>
+#ifndef VMM_GUEST
+#include <vmm/ept.h>
+#include <vmm/vmx.h>
+#endif
 
 // Print a string to the system console.
 // The string is exactly 'len' characters long.
@@ -339,6 +344,7 @@ static int
 sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 {
 
+
 // LAB 4: Your code here.
 	struct Env *env;
 	if (envid2env(envid,&env,0)<0)
@@ -377,6 +383,7 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 
 }
 
+
 // Block until a value is ready.  Record that you want to receive
 // using the env_ipc_recving and env_ipc_dstva fields of struct Env,
 // mark yourself not runnable, and then give up the CPU.
@@ -407,19 +414,96 @@ sys_ipc_recv(void *dstva)
 		sched_yield();
 
 		return 0;
-	}
+}
+// Return the current time.
+static int
+sys_time_msec(void)
+{
+	// LAB 6: Your code here.
+	panic("sys_time_msec not implemented");
+}
 
 
-	static void 
-	sys_set_priority(envid_t envid,int priority){
+// Maps a page from the evnironment corresponding to envid into the guest vm 
+// environments phys addr space. 
+//
+//
+// Return 0 on success, < 0 on error.  Errors are:
+//	-E_BAD_ENV if srcenvid and/or guest doesn't currently exist,
+//		or the caller doesn't have permission to change one of them.
+//	-E_INVAL if srcva >= UTOP or srcva is not page-aligned,
+//		or guest_pa >= guest physical size or guest_pa is not page-aligned.
+//	-E_INVAL is srcva is not mapped in srcenvid's address space.
+//	-E_INVAL if perm is inappropriate 
+//	-E_INVAL if (perm & PTE_W), but srcva is read-only in srcenvid's
+//		address space.
+//	-E_NO_MEM if there's no memory to allocate any necessary page tables. 
+//
+// Hint: The TA solution uses ept_map_hva2gpa().  A guest environment uses 
+//       env_pml4e to store the root of the extended page tables.
+// 
+#ifndef VMM_GUEST
+static void
+sys_vmx_list_vms() {
+	vmx_list_vms();
+}
+
+static bool
+sys_vmx_sel_resume(int i) {
+	return vmx_sel_resume(i);
+}
+
+static int
+sys_vmx_get_vmdisk_number() {
+	return vmx_get_vmdisk_number();
+}
+
+static void
+sys_vmx_incr_vmdisk_number() {
+	vmx_incr_vmdisk_number();
+}
+
+static int
+sys_ept_map(envid_t srcenvid, void *srcva,
+	    envid_t guest, void* guest_pa, int perm)
+{
+		/* Your code here */
+		panic ("sys_ept_map not implemented");
+		return 0;
+}
+
+static envid_t
+	sys_env_mkguest(uint64_t gphysz, uint64_t gRIP) {
+	int r;
+	struct Env *e;
+
+	// Check if the processor has VMX support.
+	if ( !vmx_check_support() ) {
+		return -E_NO_VMX;
+	} else if ( !vmx_check_ept() ) {
+		return -E_NO_EPT;
+	} 
+	if ((r = env_guest_alloc(&e, curenv->env_id)) < 0)
+		return r;
+	e->env_status = ENV_NOT_RUNNABLE;
+	e->env_vmxinfo.phys_sz = gphysz;
+	e->env_tf.tf_rip = gRIP;
+	return e->env_id;
+}
+#endif //!VMM_GUEST
+
+
+
+static void 
+sys_set_priority(envid_t envid,int priority){
 		struct Env *env;
 		if (envid2env(envid,&env,1)<0)
 			panic("sys_set_priority: envid2env()\n");
 		env->env_priority=priority;
 		return;
-	}
+}
 
-	static int
+static int
  sys_env_set_trapframe(envid_t envid, struct Trapframe *tf)
  {
  struct Env *env;
@@ -476,10 +560,37 @@ user_mem_assert (env, tf, sizeof (struct Trapframe), PTE_U);
 			case SYS_ipc_recv:
 			return sys_ipc_recv((void *)a1);
 
+#ifndef VMM_GUEST
+	case SYS_ept_map:
+		return sys_ept_map(a1, (void*) a2, a3, (void*) a4, a5);
+	case SYS_env_mkguest:
+		return sys_env_mkguest(a1, a2);
+	case SYS_vmx_list_vms:
+		sys_vmx_list_vms();
+		return 0;
+	case SYS_vmx_sel_resume:
+		return sys_vmx_sel_resume(a1);
+	case SYS_vmx_get_vmdisk_number:
+		return sys_vmx_get_vmdisk_number();
+	case SYS_vmx_incr_vmdisk_number:
+		sys_vmx_incr_vmdisk_number();
+		return 0;
+#endif
+
+
 			case SYS_env_set_trapframe:
 			return sys_env_set_trapframe((envid_t)a1, (struct Trapframe*)a2);
 			default:
 			return -E_NO_SYS;
 		}
+
 	}
 
+#ifdef TEST_EPT_MAP
+int
+_export_sys_ept_map(envid_t srcenvid, void *srcva,
+		    envid_t guest, void* guest_pa, int perm)
+{
+	return sys_ept_map(srcenvid, srcva, guest, guest_pa, perm);
+}
+#endif

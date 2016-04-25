@@ -129,7 +129,7 @@ i386_detect_memory(void)
 	extern char multiboot_info[];
 	uintptr_t* mbp = (uintptr_t*)multiboot_info;
 	multiboot_info_t * mbinfo = (multiboot_info_t*)*mbp;
-	
+
 	if(mbinfo && (mbinfo->flags & MB_FLAG_MMAP)) {
 		multiboot_read(mbinfo, &basemem, &extmem);
 	} else {
@@ -216,11 +216,18 @@ boot_alloc(uint32_t n)
 	// the first virtual address that the linker did *not* assign
 	// to any kernel code or global variables.
 	if (!nextfree) {
+#ifdef VMM_GUEST
+		extern char end[];
+		nextfree = ROUNDUP((char *) end, PGSIZE);
+#else
 		extern uintptr_t end_debug;
 		nextfree = ROUNDUP((char *) end_debug, PGSIZE);
 
-		cprintf("end = %x\n ",end_debug);
-		cprintf("nextfree = %x\n ",nextfree);   
+#endif
+
+
+		// cprintf("end = %x\n ",end_debug);
+		// cprintf("nextfree = %x\n ",nextfree);   
 	}	
 	
 	//result is the nextfree from last time we implement boot_alloc method
@@ -229,6 +236,7 @@ boot_alloc(uint32_t n)
 
 	if (n>0) {
 		nextfree = ROUNDUP(nextfree+n,PGSIZE); 
+
 	}
 	//Therefore, whatever what case it is, result is the nextfree from last time
 	//If this is the frist time, just return the start address
@@ -354,7 +362,7 @@ x64_vm_init(void)
 	// Initialize the SMP-related parts of the memory map
 	mem_init_mp();
 
-	check_boot_pml4e(boot_pml4e);
+	/* check_boot_pml4e(boot_pml4e); */
 
 	//////////////////////////////////////////////////////////////////////
 	// Permissions: kernel RW, user NONE
@@ -362,10 +370,10 @@ x64_vm_init(void)
 	pde_t *pgdir = KADDR(PTE_ADDR(pdpe[0]));
 	lcr3(boot_cr3);
 
-	check_page_free_list(1);
-	check_page_alloc();
-	page_check();
-	check_page_free_list(0);
+	/* check_page_free_list(1); */
+	/* check_page_alloc(); */
+	/* page_check(); */
+	/* check_page_free_list(0); */
 }
 
 
@@ -1352,7 +1360,7 @@ check_page_free_list(bool only_low_memory)
 	pde  = KADDR(PTE_ADDR(pdpe[PDPE(va)]));
 	ptep1 = KADDR(PTE_ADDR(pde[PDX(va)]));
 	assert(ptep == ptep1 + PTX(va));
-	
+
 	// check that new page tables get cleared
 	page_decref(pp4);
 	memset(page2kva(pp4), 0xFF, PGSIZE);
@@ -1383,7 +1391,7 @@ check_page_free_list(bool only_low_memory)
 	// check that they don't overlap
 	assert(mm1 + 8096 <= mm2);
 	// check page mappings
-	
+
 	assert(check_va2pa(boot_pml4e, mm1) == 0);
 	assert(check_va2pa(boot_pml4e, mm1+PGSIZE) == PGSIZE);
 	assert(check_va2pa(boot_pml4e, mm2) == 0);

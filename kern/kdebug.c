@@ -303,8 +303,6 @@ debuginfo_rip(uintptr_t addr, struct Ripdebuginfo *info)
 		}
 		elf = curenv->elf;
 	}
-    
-    
 	_dwarf_init(dbg, elf);
 
 	sect = _dwarf_find_section(".debug_info");	

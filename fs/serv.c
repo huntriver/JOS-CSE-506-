@@ -69,6 +69,7 @@ openfile_alloc(struct OpenFile **o)
 	// Find an available open-file table entry
 	for (i = 0; i < MAXOPEN; i++) {
 		switch (pageref(opentab[i].o_fd)) {
+		#ifndef VMM_GUEST	
 		case 0:
 			if ((r = sys_page_alloc(0, opentab[i].o_fd, PTE_P|PTE_U|PTE_W)) < 0)
 				return r;
@@ -78,6 +79,23 @@ openfile_alloc(struct OpenFile **o)
 			*o = &opentab[i];
 			memset(opentab[i].o_fd, 0, PGSIZE);
 			return (*o)->o_fileid;
+		#else
+		case 0:
+			if ((r = sys_page_alloc(0, opentab[i].o_fd, PTE_P|PTE_U|PTE_W)) < 0)
+				return r;
+			opentab[i].o_fileid += MAXOPEN;
+			*o = &opentab[i];
+			memset(opentab[i].o_fd, 0, PGSIZE);
+			return (*o)->o_fileid;
+			break;
+		case 1:
+			if ((uint64_t) opentab[i].o_fd != get_host_fd()) {				
+				opentab[i].o_fileid += MAXOPEN;
+				*o = &opentab[i];
+				memset(opentab[i].o_fd, 0, PGSIZE);
+				return (*o)->o_fileid;
+			}
+		#endif
 		}
 	}
 	return -E_MAX_OPEN;
@@ -134,7 +152,7 @@ serve_open(envid_t envid, struct Fsreq_open *req,
 			return r;
 		}
 	} else {
-try_open:
+	try_open:
 		if ((r = file_open(path, &f)) < 0) {
 			if (debug)
 				cprintf("file_open failed: %e", r);
@@ -315,6 +333,7 @@ serve_sync(envid_t envid, union Fsipc *req)
 	return 0;
 }
 
+
 typedef int (*fshandler)(envid_t envid, union Fsipc *req);
 
 fshandler handlers[] = {
@@ -361,6 +380,8 @@ serve(void)
 			r = -E_INVAL;
 		}
 		ipc_send(whom, r, pg, perm);
+		if(debug)
+			cprintf("FS: Sent response %d to %x\n", r, whom);
 		sys_page_unmap(0, fsreq);
 	}
 }
@@ -378,7 +399,6 @@ umain(int argc, char **argv)
 
 	serve_init();
 	fs_init();
-	fs_test();
 	serve();
 }
 

@@ -53,9 +53,6 @@ bc_pgfault(struct UTrapframe *utf)
 	if ((r=ide_read(blockno* BLKSECTS,ROUNDDOWN(addr,PGSIZE),BLKSECTS))<0)
 		panic("in bc_pgfault, ide_read: %e", r);
 
-	if ((r = sys_page_map(0, addr, 0, addr, uvpt[PGNUM(addr)] & PTE_SYSCALL)) < 0)
-		panic("in bc_pgfault, sys_page_map: %e", r);
-
 	// Check that the block we read was allocated. (exercise for
 	// the reader: why do we do this *after* reading the block
 	// in?)

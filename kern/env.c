@@ -16,6 +16,11 @@
 #include <kern/sched.h>
 #include <kern/cpu.h>
 #include <kern/spinlock.h>
+#include <vmm/vmx.h>
+#include <vmm/ept.h>
+
+extern bool bootstrapped;
+int vcpu_count = 0;
 
 struct Env *envs = NULL;		// All environments
 static struct Env *env_free_list;	// Free environment list
@@ -59,7 +64,7 @@ struct Segdesc gdt[2*NCPU + 5] =
 	// Per-CPU TSS descriptors (starting from GD_TSS0) are initialized
 	// in trap_init_percpu()
 	[GD_TSS0 >> 3] = SEG_NULL,
-	
+
 	[6] = SEG_NULL //last 8 bytes of the tss since tss is 16 bytes long
 };
 
@@ -150,19 +155,19 @@ env_init_percpu(void)
 {
 	lgdt(&gdt_pd);
 
-// The kernel never uses GS or FS, so we leave those set to
-// the user data segment.
+	// The kernel never uses GS or FS, so we leave those set to
+	// the user data segment.
 	asm volatile("movw %%ax,%%gs" :: "a" (GD_UD|3));
 	asm volatile("movw %%ax,%%fs" :: "a" (GD_UD|3));
-// The kernel does use ES, DS, and SS.  We'll change between
-// the kernel and user data segments as needed.
+	// The kernel does use ES, DS, and SS.  We'll change between
+	// the kernel and user data segments as needed.
 	asm volatile("movw %%ax,%%es" :: "a" (GD_KD));
 	asm volatile("movw %%ax,%%ds" :: "a" (GD_KD));
 	asm volatile("movw %%ax,%%ss" :: "a" (GD_KD));
-// Load the kernel text segment into CS.
+	// Load the kernel text segment into CS.
 	asm volatile("pushq %%rbx \n \t movabs $1f,%%rax \n \t pushq %%rax \n\t lretq \n 1:\n" :: "b" (GD_KT):"cc","memory");
-// For good measure, clear the local descriptor table (LDT),
-// since we don't use it.
+	// For good measure, clear the local descriptor table (LDT),
+	// since we don't use it.
 	lldt(0);
 }
 
@@ -216,6 +221,124 @@ env_setup_vm(struct Env *e)
 
 	return 0;
 }
+
+#ifndef VMM_GUEST
+int
+env_guest_alloc(struct Env **newenv_store, envid_t parent_id)
+{
+	int32_t generation;
+	struct Env *e;
+
+	if (!(e = env_free_list))
+		return -E_NO_FREE_ENV;
+
+	memset(&e->env_vmxinfo, 0, sizeof(struct VmxGuestInfo));
+
+	// allocate a page for the EPT PML4..
+	struct PageInfo *p = NULL;
+
+	if (!(p = page_alloc(ALLOC_ZERO)))
+		return -E_NO_MEM;
+
+	memset(p, 0, sizeof(struct PageInfo));
+	p->pp_ref       += 1;
+	e->env_pml4e    = page2kva(p);
+	e->env_cr3      = page2pa(p);
+
+	// Allocate a VMCS.
+	struct PageInfo *q = vmx_init_vmcs();
+	if (!q) {
+		page_decref(p);
+		return -E_NO_MEM;
+	}
+	q->pp_ref += 1;
+	e->env_vmxinfo.vmcs = page2kva(q);
+
+	// Allocate a page for msr load/store area.
+	struct PageInfo *r = NULL;
+	if (!(r = page_alloc(ALLOC_ZERO))) {
+		page_decref(p);
+		page_decref(q);
+		return -E_NO_MEM;
+	}
+	r->pp_ref += 1;
+	e->env_vmxinfo.msr_host_area = page2kva(r);
+	e->env_vmxinfo.msr_guest_area = page2kva(r) + PGSIZE / 2;
+
+	// Allocate pages for IO bitmaps.
+	struct PageInfo *s = NULL;
+	if (!(s = page_alloc(ALLOC_ZERO))) {
+		page_decref(p);
+		page_decref(q);
+		page_decref(r);
+		return -E_NO_MEM;
+	}
+	s->pp_ref += 1;
+	e->env_vmxinfo.io_bmap_a = page2kva(s);
+
+	struct PageInfo *t = NULL;
+	if (!(t = page_alloc(ALLOC_ZERO))) {
+		page_decref(p);
+		page_decref(q);
+		page_decref(r);
+		page_decref(s);
+		return -E_NO_MEM;
+	}
+	t->pp_ref += 1;
+	e->env_vmxinfo.io_bmap_b = page2kva(t);
+
+	// Generate an env_id for this environment.
+	generation = (e->env_id + (1 << ENVGENSHIFT)) & ~(NENV - 1);
+	if (generation <= 0)	// Don't create a negative env_id.
+		generation = 1 << ENVGENSHIFT;
+	e->env_id = generation | (e - envs);
+
+	// Set the basic status variables.
+	e->env_parent_id = parent_id;
+	e->env_type = ENV_TYPE_GUEST;
+	e->env_status = ENV_RUNNABLE;
+	e->env_runs = 0;
+	e->env_vmxinfo.vcpunum = vcpu_count++;
+    	cprintf("VCPUNUM allocated: %d\n", e->env_vmxinfo.vcpunum);
+
+	memset(&e->env_tf, 0, sizeof(e->env_tf));
+
+	e->env_pgfault_upcall = 0;
+	e->env_ipc_recving = 0;
+
+	// commit the allocation
+	env_free_list = e->env_link;
+	*newenv_store = e;
+
+	return 0;
+}
+
+void env_guest_free(struct Env *e) {
+	// Free the VMCS.
+	page_decref(pa2page(PADDR(e->env_vmxinfo.vmcs)));
+	// Free msr load/store area.
+	page_decref(pa2page(PADDR(e->env_vmxinfo.msr_host_area)));
+	// Free IO bitmaps page.
+	page_decref(pa2page(PADDR(e->env_vmxinfo.io_bmap_a)));
+	page_decref(pa2page(PADDR(e->env_vmxinfo.io_bmap_b)));
+    
+	// Free the host pages that were allocated for the guest and 
+	// the EPT tables itself.
+	free_guest_mem(e->env_pml4e);
+
+	// Free the EPT PML4 page.
+	page_decref(pa2page(e->env_cr3));
+	e->env_pml4e = 0;
+	e->env_cr3 = 0;
+
+	// return the environment to the free list
+	e->env_status = ENV_FREE;
+	e->env_link = env_free_list;
+	env_free_list = e;
+
+	cprintf("[%08x] free vmx guest env %08x\n", curenv ? curenv->env_id : 0, e->env_id);
+}
+#endif
 
 //
 // Allocates and initializes a new environment.
@@ -468,6 +591,13 @@ env_free(struct Env *e)
 	uint64_t pdeno, pteno;
 	physaddr_t pa;
 
+#ifndef VMM_GUEST 
+	if(e->env_type == ENV_TYPE_GUEST) {
+		env_guest_free(e);
+		return;
+	}
+#endif
+
 	// If freeing the current environment, switch to kern_pgdir
 	// before freeing the page directory, just in case the page
 	// gets reused.
@@ -550,7 +680,6 @@ env_destroy(struct Env *e)
 	}
 
 	env_free(e);
-
 	if (curenv == e) {
 		curenv = NULL;
 		sched_yield();
@@ -569,7 +698,6 @@ env_pop_tf(struct Trapframe *tf)
 {
 	// Record the CPU we are running on for user-space debugging
 	curenv->env_cpunum = cpunum();
-
 	__asm __volatile("movq %0,%%rsp\n"
 			 POPA
 			 "movw (%%rsp),%%es\n"

@@ -1,6 +1,9 @@
 // User-level IPC library routines
 
 #include <inc/lib.h>
+#ifdef VMM_GUEST
+#include <inc/vmx.h>
+#endif
 
 // Receive a value via IPC and return it.
 // If 'pg' is nonnull, then any page sent by the sender will be mapped at
@@ -58,6 +61,27 @@ ipc_send(envid_t to_env, uint32_t val, void *pg, int perm)
 
 }
 
+#ifdef VMM_GUEST
+
+// Access to host IPC interface through VMCALL.
+// Should behave similarly to ipc_recv, except replacing the system call with a vmcall.
+int32_t
+ipc_host_recv(void *pg) {
+	// LAB 8: Your code here.
+	panic("ipc_recv not implemented in VM guest");
+}
+
+// Access to host IPC interface through VMCALL.
+// Should behave similarly to ipc_send, except replacing the system call with a vmcall.
+void
+ipc_host_send(envid_t to_env, uint32_t val, void *pg, int perm)
+{
+	// LAB 8: Your code here.
+	panic("ipc_send not implemented in VM guest");
+}
+
+#endif
+
 // Find the first environment of the given type.  We'll use this to
 // find special environments.
 // Returns 0 if no such environment exists.
@@ -65,11 +89,11 @@ envid_t
 ipc_find_env(enum EnvType type)
 {
 	int i;
-	for (i = 0; i < NENV; i++)
+	for (i = 0; i < NENV; i++) {
 		if (envs[i].env_type == type)
 			return envs[i].env_id;
 
-
-		return 0;
 	}
+	return 0;
+}
 
