@@ -11,6 +11,7 @@
 /qemu.out
 /qemu.log
 /gradelib.pyc
+/vmm
 /lab?-handin.tar.gz
 /lab?/
 /sol?/
