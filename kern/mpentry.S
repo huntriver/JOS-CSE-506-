@@ -64,6 +64,7 @@ start32:
 	movw    %ax, %gs
 
 	movl $CR4_PAE,%eax
+
 	movl %eax,%cr4
 	
 	lgdt    MPBOOTPHYS(gdtdesc)

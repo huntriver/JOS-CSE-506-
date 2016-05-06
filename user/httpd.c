@@ -24,7 +24,7 @@ struct responce_header {
 
 struct responce_header headers[] = {
 	{ 200, 	"HTTP/" HTTP_VERSION " 200 OK\r\n"
-		"Server: jhttpd/" VERSION "\r\n"},
+	  "Server: jhttpd/" VERSION "\r\n"},
 	{0, 0},
 };
 
@@ -197,12 +197,12 @@ send_error(struct http_request *req, int code)
 		return -1;
 
 	r = snprintf(buf, 512, "HTTP/" HTTP_VERSION" %d %s\r\n"
-			       "Server: jhttpd/" VERSION "\r\n"
-			       "Connection: close"
-			       "Content-type: text/html\r\n"
-			       "\r\n"
-			       "<html><body><p>%d - %s</p></body></html>\r\n",
-			       e->code, e->msg, e->code, e->msg);
+		     "Server: jhttpd/" VERSION "\r\n"
+		     "Connection: close"
+		     "Content-type: text/html\r\n"
+		     "\r\n"
+		     "<html><body><p>%d - %s</p></body></html>\r\n",
+		     e->code, e->msg, e->code, e->msg);
 
 	if (write(req->sock, buf, r) != r)
 		return -1;

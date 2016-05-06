@@ -33,40 +33,9 @@
 .text
 .globl _pgfault_upcall
 _pgfault_upcall:
-	// Call the C page fault handler.
-	// function argument: pointer to UTF
-	
-	movq  %rsp,%rdi                // passing the function argument in rdi
-	movabs _pgfault_handler, %rax
-	call *%rax
-	
-	// Now the C page fault handler has returned and you must return
-	// to the trap time state.
-	// Push trap-time %eip onto the trap-time stack.
-	//
-	// Explanation:
-	//   We must prepare the trap-time stack for our eventual return to
-	//   re-execute the instruction that faulted.
-	//   Unfortunately, we can't return directly from the exception stack:
-	//   We can't call 'jmp', since that requires that we load the address
-	//   into a register, and all registers must have their trap-time
-	//   values after the return.
-	//   We can't call 'ret' from the exception stack either, since if we
-	//   did, %esp would have the wrong value.
-	//   So instead, we push the trap-time %eip onto the *trap-time* stack!
-	//   Below we'll switch to that stack and call 'ret', which will
-	//   restore %eip to its pre-fault value.
-	//
-	//   In the case of a recursive fault on the exception stack,
-	//   note that the word we're pushing now will fit in the
-	//   blank word that the kernel reserved for us.
-	//
-	// Throughout the remaining code, think carefully about what
-	// registers are available for intermediate calculations.  You
-	// may find that you have to rearrange your code in non-obvious
-	// ways as registers become unavailable as scratch space.
-	//
-	// LAB 4: Your code here.
+// Call the C page fault handler.
+// function argument: pointer to UTF
+
 
 	movq %rsp, %rdi;	
 	movq 136(%rsp), %rbx;
@@ -83,10 +52,43 @@ _pgfault_upcall:
 	POPA_;  // getting all register values back
 
 
-	// Restore eflags from the stack.  After you do this, you can
-	// no longer use arithmetic operations or anything else that
-	// modifies eflags.
-	// LAB 4: Your code here.
+
+// Now the C page fault handler has returned and you must return
+// to the trap time state.
+// Push trap-time %eip onto the trap-time stack.
+//
+// Explanation:
+//   We must prepare the trap-time stack for our eventual return to
+//   re-execute the instruction that faulted.
+//   Unfortunately, we can't return directly from the exception stack:
+//   We can't call 'jmp', since that requires that we load the address
+//   into a register, and all registers must have their trap-time
+//   values after the return.
+//   We can't call 'ret' from the exception stack either, since if we
+//   did, %esp would have the wrong value.
+//   So instead, we push the trap-time %eip onto the *trap-time* stack!
+//   Below we'll switch to that stack and call 'ret', which will
+//   restore %eip to its pre-fault value.
+//
+//   In the case of a recursive fault on the exception stack,
+//   note that the word we're pushing now will fit in the
+//   blank word that the kernel reserved for us.
+//
+// Throughout the remaining code, think carefully about what
+// registers are available for intermediate calculations.  You
+// may find that you have to rearrange your code in non-obvious
+// ways as registers become unavailable as scratch space.
+//
+// LAB 4: Your code here.
+
+    // Restore the trap-time registers.  After you do this, you
+    // can no longer modify any general-purpose registers.
+    // LAB 4: Your code here.
+
+    // Restore eflags from the stack.  After you do this, you can
+    // no longer use arithmetic operations or anything else that
+    // modifies eflags.
+    // LAB 4: Your code here.
 
 	add $8, %rsp; //Jump rip field  
 	popfq
@@ -98,3 +100,4 @@ _pgfault_upcall:
 	// Return to re-execute the instruction that faulted.
 	// LAB 4: Your code here.
 	ret   
+

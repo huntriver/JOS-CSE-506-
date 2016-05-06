@@ -21,15 +21,15 @@ syscall(int num, int check, uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4, 
 	// memory locations.
 
 	asm volatile("int %1\n"
-		: "=a" (ret)
-		: "i" (T_SYSCALL),
-		  "a" (num),
-		  "d" (a1),
-		  "c" (a2),
-		  "b" (a3),
-		  "D" (a4),
-		  "S" (a5)
-		: "cc", "memory");
+		     : "=a" (ret)
+		     : "i" (T_SYSCALL),
+		       "a" (num),
+		       "d" (a1),
+		       "c" (a2),
+		       "b" (a3),
+		       "D" (a4),
+		       "S" (a5)
+		     : "cc", "memory");
 
 	if(check && ret > 0)
 		panic("syscall %d returned %d (> 0)", num, ret);
@@ -58,7 +58,7 @@ sys_env_destroy(envid_t envid)
 envid_t
 sys_getenvid(void)
 {
-	 return syscall(SYS_getenvid, 0, 0, 0, 0, 0, 0);
+	return syscall(SYS_getenvid, 0, 0, 0, 0, 0, 0);
 }
 
 void
@@ -125,14 +125,9 @@ sys_ipc_recv(void *dstva)
 	return syscall(SYS_ipc_recv, 1, (uint64_t)dstva, 0, 0, 0, 0);
 }
 
-int 
-sys_transmit_packet(void* buf,size_t buf_len)
-{
-	return syscall(SYS_transmit_packet,0,(uint64_t)buf,buf_len,0,0,0);
-
-}
 unsigned int
 sys_time_msec(void)
 {
 	return (unsigned int) syscall(SYS_time_msec, 0, 0, 0, 0, 0, 0);
 }
+

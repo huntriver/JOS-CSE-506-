@@ -53,6 +53,11 @@ bc_pgfault(struct UTrapframe *utf)
 	if ((r=ide_read(blockno* BLKSECTS,ROUNDDOWN(addr,PGSIZE),BLKSECTS))<0)
 		panic("in bc_pgfault, ide_read: %e", r);
 
+
+
+	// LAB 5: Your code here
+
+
 	if ((r = sys_page_map(0, addr, 0, addr, uvpt[PGNUM(addr)] & PTE_SYSCALL)) < 0)
 		panic("in bc_pgfault, sys_page_map: %e", r);
 

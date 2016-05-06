@@ -23,8 +23,6 @@ enum {
 
 	SYS_set_priority,
 
-	SYS_transmit_packet,
-
 	NSYSCALLS
 };
 

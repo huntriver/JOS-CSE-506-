@@ -16,7 +16,7 @@
 #include <kern/time.h>
 
 extern uintptr_t gdtdesc_64;
-static struct Taskstate ts;
+struct Taskstate ts;
 extern struct Segdesc gdt[];
 extern long gdt_pd;
 
@@ -73,6 +73,7 @@ void
 trap_init(void)
 {
 	extern struct Segdesc gdt[];
+
 
 	int i;
 	extern uint64_t entries[];
@@ -143,6 +144,7 @@ void entry47();
 idt_pd.pd_lim = sizeof(idt)-1;
 
     idt_pd.pd_base = (uint64_t)idt;
+
 	// Per-CPU setup
 	trap_init_percpu();
 }
@@ -173,6 +175,7 @@ trap_init_percpu(void)
 	// user space on that CPU.
 	//
 	// LAB 4: Your code here:
+
 
 	// Setup a TSS so that we get the right stack
 	// when we trap to the kernel.
@@ -298,7 +301,6 @@ trap_dispatch(struct Trapframe *tf)
 
 		case IRQ_OFFSET+IRQ_TIMER:
 		lapic_eoi();
-		time_tick();
 		sched_yield();
 		break;
 
@@ -327,7 +329,7 @@ trap_dispatch(struct Trapframe *tf)
 void
 trap(struct Trapframe *tf)
 {
-    //struct Trapframe *tf = &tf_;
+	//struct Trapframe *tf = &tf_;
 	// The environment may have set DF and some versions
 	// of GCC rely on DF being clear
 	asm volatile("cld" ::: "cc");

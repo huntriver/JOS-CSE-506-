@@ -65,7 +65,7 @@ int	sys_ipc_recv(void *rcv_pg);
 unsigned int sys_time_msec(void);
 
 void sys_set_priority(envid_t envid,int priority);
-int sys_transmit_packet(void* buf,size_t buf_len);
+
 // This must be inlined.  Exercise for reader: why?
 static __inline envid_t __attribute__((always_inline))
 sys_exofork(void)
@@ -83,6 +83,7 @@ sys_exofork(void)
 void	ipc_send(envid_t to_env, uint32_t value, void *pg, int perm);
 int32_t ipc_recv(envid_t *from_env_store, void *pg, int *perm_store);
 envid_t	ipc_find_env(enum EnvType type);
+
 
 // fork.c
 #define	PTE_SHARE	0x400
@@ -106,6 +107,7 @@ int	open(const char *path, int mode);
 int	ftruncate(int fd, off_t size);
 int	remove(const char *path);
 int	sync(void);
+
 
 // pageref.c
 int	pageref(void *addr);

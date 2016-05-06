@@ -99,17 +99,20 @@ check_bitmap(void)
 // File system structures
 // --------------------------------------------------------------
 
+
 // Initialize the file system
 void
 fs_init(void)
 {
 	static_assert(sizeof(struct File) == 256);
 
+
 	// Find a JOS disk.  Use the second IDE disk (number 1) if available.
 	if (ide_probe_disk1())
 		ide_set_disk(1);
 	else
 		ide_set_disk(0);
+
 
 	bc_init();
 	// Set "super" to point to the super block.
@@ -140,7 +143,7 @@ fs_init(void)
 //
 // Analogy: This is like pgdir_walk for files.
 // Hint: Don't forget to clear any block you allocate.
-static int
+int
 file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool alloc)
 {
         // LAB 5: Your code here.

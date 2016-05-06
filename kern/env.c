@@ -59,7 +59,7 @@ struct Segdesc gdt[2*NCPU + 5] =
 	// Per-CPU TSS descriptors (starting from GD_TSS0) are initialized
 	// in trap_init_percpu()
 	[GD_TSS0 >> 3] = SEG_NULL,
-	
+
 	[6] = SEG_NULL //last 8 bytes of the tss since tss is 16 bytes long
 };
 
@@ -150,19 +150,19 @@ env_init_percpu(void)
 {
 	lgdt(&gdt_pd);
 
-// The kernel never uses GS or FS, so we leave those set to
-// the user data segment.
+	// The kernel never uses GS or FS, so we leave those set to
+	// the user data segment.
 	asm volatile("movw %%ax,%%gs" :: "a" (GD_UD|3));
 	asm volatile("movw %%ax,%%fs" :: "a" (GD_UD|3));
-// The kernel does use ES, DS, and SS.  We'll change between
-// the kernel and user data segments as needed.
+	// The kernel does use ES, DS, and SS.  We'll change between
+	// the kernel and user data segments as needed.
 	asm volatile("movw %%ax,%%es" :: "a" (GD_KD));
 	asm volatile("movw %%ax,%%ds" :: "a" (GD_KD));
 	asm volatile("movw %%ax,%%ss" :: "a" (GD_KD));
-// Load the kernel text segment into CS.
+	// Load the kernel text segment into CS.
 	asm volatile("pushq %%rbx \n \t movabs $1f,%%rax \n \t pushq %%rax \n\t lretq \n 1:\n" :: "b" (GD_KT):"cc","memory");
-// For good measure, clear the local descriptor table (LDT),
-// since we don't use it.
+	// For good measure, clear the local descriptor table (LDT),
+	// since we don't use it.
 	lldt(0);
 }
 
@@ -216,6 +216,7 @@ env_setup_vm(struct Env *e)
 
 	return 0;
 }
+
 
 //
 // Allocates and initializes a new environment.
@@ -468,6 +469,7 @@ env_free(struct Env *e)
 	uint64_t pdeno, pteno;
 	physaddr_t pa;
 
+
 	// If freeing the current environment, switch to kern_pgdir
 	// before freeing the page directory, just in case the page
 	// gets reused.
@@ -550,7 +552,6 @@ env_destroy(struct Env *e)
 	}
 
 	env_free(e);
-
 	if (curenv == e) {
 		curenv = NULL;
 		sched_yield();
@@ -569,7 +570,6 @@ env_pop_tf(struct Trapframe *tf)
 {
 	// Record the CPU we are running on for user-space debugging
 	curenv->env_cpunum = cpunum();
-
 	__asm __volatile("movq %0,%%rsp\n"
 			 POPA
 			 "movw (%%rsp),%%es\n"

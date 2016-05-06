@@ -129,7 +129,7 @@ i386_detect_memory(void)
 	extern char multiboot_info[];
 	uintptr_t* mbp = (uintptr_t*)multiboot_info;
 	multiboot_info_t * mbinfo = (multiboot_info_t*)*mbp;
-	
+
 	if(mbinfo && (mbinfo->flags & MB_FLAG_MMAP)) {
 		multiboot_read(mbinfo, &basemem, &extmem);
 	} else {
@@ -216,6 +216,7 @@ boot_alloc(uint32_t n)
 	// the first virtual address that the linker did *not* assign
 	// to any kernel code or global variables.
 	if (!nextfree) {
+
 		extern uintptr_t end_debug;
 		nextfree = ROUNDUP((char *) end_debug, PGSIZE);
 
@@ -229,6 +230,7 @@ boot_alloc(uint32_t n)
 
 	if (n>0) {
 		nextfree = ROUNDUP(nextfree+n,PGSIZE); 
+
 	}
 	//Therefore, whatever what case it is, result is the nextfree from last time
 	//If this is the frist time, just return the start address
@@ -1352,7 +1354,7 @@ check_page_free_list(bool only_low_memory)
 	pde  = KADDR(PTE_ADDR(pdpe[PDPE(va)]));
 	ptep1 = KADDR(PTE_ADDR(pde[PDX(va)]));
 	assert(ptep == ptep1 + PTX(va));
-	
+
 	// check that new page tables get cleared
 	page_decref(pp4);
 	memset(page2kva(pp4), 0xFF, PGSIZE);
@@ -1383,7 +1385,7 @@ check_page_free_list(bool only_low_memory)
 	// check that they don't overlap
 	assert(mm1 + 8096 <= mm2);
 	// check page mappings
-	
+
 	assert(check_va2pa(boot_pml4e, mm1) == 0);
 	assert(check_va2pa(boot_pml4e, mm1+PGSIZE) == PGSIZE);
 	assert(check_va2pa(boot_pml4e, mm2) == 0);

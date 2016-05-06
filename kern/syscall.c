@@ -1,3 +1,7 @@
+#include <inc/types.h>
+#include <inc/assert.h>
+#include <inc/error.h>
+
 /* See COPYRIGHT for copyright information. */
 
 #include <inc/x86.h>
@@ -12,7 +16,6 @@
 #include <kern/console.h>
 #include <kern/sched.h>
 #include <kern/time.h>
-#include <kern/e1000.h>
 
 // Print a string to the system console.
 // The string is exactly 'len' characters long.
@@ -341,6 +344,7 @@ static int
 sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 {
 
+
 // LAB 4: Your code here.
 	struct Env *env;
 	if (envid2env(envid,&env,0)<0)
@@ -378,6 +382,7 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 //panic("sys_ipc_try_send not implemented");
 
 }
+
 
 // Block until a value is ready.  Record that you want to receive
 // using the env_ipc_recving and env_ipc_dstva fields of struct Env,
@@ -418,9 +423,7 @@ static int
 sys_time_msec(void)
 {
 // LAB 6: Your code here.
-	int r=time_msec();
-	return r;
-//	panic("sys_time_msec not implemented");
+	panic("sys_time_msec not implemented");
 }
 
 
@@ -447,11 +450,6 @@ sys_env_set_trapframe(envid_t envid, struct Trapframe *tf)
 	env->env_tf = *tf;
 	return 0;
 }
-static int 
-sys_transmit_packet(void* buf,size_t buf_len)
-{
-	return pci_xmit(buf,buf_len);
-}
 
 
 // Dispatches to the correct kernel function, passing the arguments.
@@ -464,6 +462,7 @@ syscall(uint64_t syscallno, uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4, 
 // panic("syscall not implemented");
 
 	switch (syscallno) {
+
 		case SYS_cgetc:
 		return sys_cgetc();
 		case SYS_getenvid:
@@ -495,13 +494,11 @@ syscall(uint64_t syscallno, uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4, 
 		return sys_ipc_try_send((envid_t)a1,(uint32_t)a2,(void *)a3,(unsigned)a4);
 		case SYS_ipc_recv:
 		return sys_ipc_recv((void *)a1);
+
 		case SYS_env_set_trapframe:
 		return sys_env_set_trapframe((envid_t)a1, (struct Trapframe*)a2);
-		case SYS_time_msec:
-		return sys_time_msec();
-		case SYS_transmit_packet:
-		return sys_transmit_packet((void*)a1,(size_t)a2);
 		default:
+
 		return -E_NO_SYS;
 	}
 }

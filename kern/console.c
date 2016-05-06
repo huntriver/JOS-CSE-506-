@@ -323,7 +323,7 @@ kbd_proc_data(void)
 	int c;
 	uint8_t data;
 	static uint32_t shift;
-
+	int r;
 	if ((inb(KBSTATP) & KBS_DIB) == 0)
 		return -1;
 
@@ -361,7 +361,6 @@ kbd_proc_data(void)
 		cprintf("Rebooting!\n");
 		outb(0x92, 0x3); // courtesy of Chris Frost
 	}
-
 	return c;
 }
 

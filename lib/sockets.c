@@ -36,7 +36,7 @@ alloc_sockfd(int sockid)
 	int r;
 
 	if ((r = fd_alloc(&sfd)) < 0
-	    || (r = sys_page_alloc(0, sfd, PTE_P|PTE_W|PTE_U|PTE_SHARE)) < 0) {
+            || (r = sys_page_alloc(0, sfd, PTE_P|PTE_W|PTE_U|PTE_SHARE)) < 0) {
 		nsipc_close(sockid);
 		return r;
 	}
