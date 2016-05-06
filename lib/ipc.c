@@ -66,10 +66,10 @@ envid_t
 ipc_find_env(enum EnvType type)
 {
 	int i;
-	for (i = 0; i < NENV; i++) {
+	for (i = 0; i < NENV; i++) 
 		if (envs[i].env_type == type)
 			return envs[i].env_id;
-		return 0;
-	}
+	return 0;
+}
 
 

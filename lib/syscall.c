@@ -125,6 +125,13 @@ sys_ipc_recv(void *dstva)
 	return syscall(SYS_ipc_recv, 1, (uint64_t)dstva, 0, 0, 0, 0);
 }
 
+int 
+sys_transmit_packet(void* buf,size_t buf_len)
+{
+	return syscall(SYS_transmit_packet,0,(uint64_t)buf,buf_len,0,0,0);
+
+}
+
 unsigned int
 sys_time_msec(void)
 {
