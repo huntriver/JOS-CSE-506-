@@ -11,8 +11,9 @@ int pci_attach_func(struct pci_func *pciFunc)
 	*(uint32_t*)((char *)pci_e1000_addr+E1000_TDH) = 0x0;
 	*(uint32_t*)((char *)pci_e1000_addr+E1000_TDT) = 0x0;
 	*(uint32_t*)((char *)pci_e1000_addr+E1000_TDLEN) = sizeof(transmit_desc);
-	*(uint32_t*)((char *)pci_e1000_addr+E1000_TCTL) = E1000_TCTL_EN|E1000_TCTL_COLD|E1000_TCTL_CT|E1000_TCTL_PSP;
-	*(uint32_t*)((char *)pci_e1000_addr+E1000_TIPG) = 0x60200a;
+	*(uint32_t*)((char *)pci_e1000_addr+E1000_TCTL) = (E1000_TCTL_EN |E1000_TCTL_PSP |0x10<<4|0x40<<12)&(~E1000_TCTL_COLD)&(~E1000_TCTL_CT);
+	*(uint32_t*)((char *)pci_e1000_addr+E1000_TIPG) = 0xa|0x4<<10|0x6<<20;
+	//0x60200a;
 
 	int i;
 	for(i = 0; i < descN; i++)
