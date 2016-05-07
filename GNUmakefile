@@ -5,7 +5,11 @@
 #	Recursive Make Considered Harmful
 #	http://aegis.sourceforge.net/auug97.pdf
 #
+
+
 OBJDIR := obj
+
+
 
 # Run 'make V=1' to turn on verbose commands, or 'make V=0' to turn them off.
 ifeq ($(V),1)
@@ -122,6 +126,7 @@ KERN_CFLAGS := $(CFLAGS) -DJOS_KERNEL -DDWARF_SUPPORT -gdwarf-2 -mcmodel=large -
 BOOT_CFLAGS := $(CFLAGS) -DJOS_KERNEL -gdwarf-2 -m32
 USER_CFLAGS := $(CFLAGS) -DJOS_USER -gdwarf-2 -mcmodel=large -m64
 
+
 # Update .vars.X if variable X has changed since the last make run.
 #
 # Rules that use variable X should depend on $(OBJDIR)/.vars.X.  If
@@ -133,6 +138,7 @@ $(OBJDIR)/.vars.%: FORCE
 .PHONY: FORCE
 
 
+
 # Include Makefrags for subdirectories
 include boot/Makefrag
 # include boot1/Makefrag
@@ -141,6 +147,7 @@ include lib/Makefrag
 include user/Makefrag
 include fs/Makefrag
 include net/Makefrag
+
 
 
 CPUS ?= 1
@@ -166,6 +173,7 @@ QEMUOPTS += $(QEMUEXTRA)
 pre-qemu: .gdbinit
 #	QEMU doesn't truncate the pcap file.  Work around this.
 	@rm -f qemu.pcap
+
 
 qemu: $(IMAGES) pre-qemu
 	$(QEMU) $(QEMUOPTS)
