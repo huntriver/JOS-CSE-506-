@@ -24,7 +24,7 @@ struct responce_header {
 
 struct responce_header headers[] = {
 	{ 200, 	"HTTP/" HTTP_VERSION " 200 OK\r\n"
-		"Server: jhttpd/" VERSION "\r\n"},
+	  "Server: jhttpd/" VERSION "\r\n"},
 	{0, 0},
 };
 
@@ -77,7 +77,18 @@ static int
 send_data(struct http_request *req, int fd)
 {
 	// LAB 6: Your code here.
-	panic("send_data not implemented");
+	//panic("send_data not implemented");
+	struct Stat status;
+	char data[1518];
+	if (fstat(fd,&status)<0)
+		die("send_data:fstat\n");
+	if (status.st_size>1518)
+		die("send_data:st_size too large\n");
+	if (status.st_size>readn(fd,data,status.st_size))
+		die("send_data:read data size\n");
+	if (status.st_size>write(req->sock, data, status.st_size))
+		die("send_data:write data size\n");
+	return 0;
 }
 
 static int
@@ -197,12 +208,12 @@ send_error(struct http_request *req, int code)
 		return -1;
 
 	r = snprintf(buf, 512, "HTTP/" HTTP_VERSION" %d %s\r\n"
-			       "Server: jhttpd/" VERSION "\r\n"
-			       "Connection: close"
-			       "Content-type: text/html\r\n"
-			       "\r\n"
-			       "<html><body><p>%d - %s</p></body></html>\r\n",
-			       e->code, e->msg, e->code, e->msg);
+		     "Server: jhttpd/" VERSION "\r\n"
+		     "Connection: close"
+		     "Content-type: text/html\r\n"
+		     "\r\n"
+		     "<html><body><p>%d - %s</p></body></html>\r\n",
+		     e->code, e->msg, e->code, e->msg);
 
 	if (write(req->sock, buf, r) != r)
 		return -1;
@@ -223,8 +234,23 @@ send_file(struct http_request *req)
 	// set file_size to the size of the file
 
 	// LAB 6: Your code here.
-	panic("send_file not implemented");
-
+	//panic("send_file not implemented");
+	
+	fd=open(req->url,O_RDONLY);
+	if (fd<0){
+		r=fd;
+		send_error(req,404);
+		goto end;
+	}
+	struct Stat status;
+	r=fstat(fd,&status);
+	if (r<0) goto end;
+	if (status.st_isdir){
+		r=-1;
+		send_error(req,404);
+		goto end;
+	}
+	file_size=status.st_size;
 	if ((r = send_header(req, 200)) < 0)
 		goto end;
 
