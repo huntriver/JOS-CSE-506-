@@ -452,7 +452,11 @@ sys_transmit_packet(void* buf,size_t buf_len)
 {
 	return pci_xmit(buf,buf_len);
 }
-
+static int 
+sys_receive_packet(void* buf)
+{
+	return pci_recv(buf);
+}
 
 // Dispatches to the correct kernel function, passing the arguments.
 int64_t
@@ -501,6 +505,8 @@ syscall(uint64_t syscallno, uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4, 
 		return sys_time_msec();
 		case SYS_transmit_packet:
 		return sys_transmit_packet((void*)a1,(size_t)a2);
+		case SYS_receive_packet:
+		return sys_receive_packet((void*)a1);
 		default:
 		return -E_NO_SYS;
 	}
